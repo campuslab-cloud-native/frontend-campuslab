@@ -1,11 +1,30 @@
 # frontend-campuslab
 
-## Stack
+Frontend web de CampusLab desarrollado con Angular.
+
+## Tecnologías
 
 - Angular
 - TypeScript
 - MSAL Angular
 - Azure AD
+- HTML
+- CSS
+
+## Funcionalidades
+
+- Inicio de sesión corporativo con Microsoft.
+- Protección de rutas mediante MSAL.
+- Autorización por rol.
+- Consumo de APIs mediante AWS API Gateway.
+- Envío automático del JWT en las solicitudes HTTP.
+
+## Roles
+
+- ADMIN
+- OPERATOR
+- CLIENT
+- AUDITOR
 
 ## Rutas
 
@@ -16,27 +35,15 @@
 - `/reports`
 - `/audit`
 
-## Roles
+## Flujo de autenticación
 
-- ADMIN
-- OPERATOR
-- CLIENT
-- AUDITOR
+Angular → Azure AD → Access Token JWT → AWS API Gateway → BFF
 
-## Seguridad
+## Variables de entorno
 
-- Login mediante Azure AD.
-- MSAL Angular.
-- Rutas protegidas por rol.
-- Bearer JWT en llamadas al backend.
-- Las llamadas se realizan mediante AWS API Gateway.
-
-## Flujo
-
-Angular → Azure AD → JWT → API Gateway → BFF
-
-## Ejecución
-
-```bash
-npm install
-npm start
+```env
+AZURE_CLIENT_ID=
+AZURE_TENANT_ID=
+AZURE_AUTHORITY=https://login.microsoftonline.com/<TENANT_ID>/
+AZURE_REDIRECT_URI=
+API_BASE_URL=
