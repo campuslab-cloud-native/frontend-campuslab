@@ -1,59 +1,78 @@
-# FrontendCampuslab
+## frontend-campuslab
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 21.2.16.
+Frontend web de CampusLab desarrollado con Angular.
 
-## Development server
+## Tecnologías
 
-To start a local development server, run:
+- Angular
+- TypeScript
+- MSAL Angular
+- Azure AD
 
-```bash
-ng serve
+## Funcionalidades
+
+- Inicio de sesión corporativo con Microsoft.
+- Protección de rutas mediante MSAL.
+- Autorización por rol.
+- Consumo del backend mediante AWS API Gateway.
+- Envío automático del JWT en las solicitudes HTTP.
+
+## Roles
+
+- ADMIN
+- OPERATOR
+- CLIENT
+- AUDITOR
+
+## Rutas
+
+- `/login`
+- `/dashboard`
+- `/bookings`
+- `/catalog`
+- `/reports`
+- `/audit`
+
+## Flujo de autenticación
+
+```text
+Usuario
+↓
+Angular
+↓
+MSAL
+↓
+Azure AD
+↓
+Access Token JWT
+↓
+Angular
+↓
+AWS API Gateway
+↓
+ms-campuslab-bff
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+## Variables de entorno
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
+```env
+AZURE_CLIENT_ID=
+AZURE_TENANT_ID=
+AZURE_AUTHORITY=https://login.microsoftonline.com/<TENANT_ID>/
+AZURE_REDIRECT_URI=
+API_BASE_URL=
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Ejecución local
 
 ```bash
-ng generate --help
+npm install
+npm start
 ```
 
-## Building
-
-To build the project run:
+## Build
 
 ```bash
-ng build
+npm run build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
