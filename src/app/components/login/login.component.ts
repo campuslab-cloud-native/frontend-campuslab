@@ -1,22 +1,17 @@
 import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { MsalService } from '@azure/msal-angular';
-import { Router } from '@angular/router';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
 export class LoginComponent {
-  constructor(private msalService: MsalService, private router: Router) {}
+  constructor(private readonly authService: AuthService) {}
 
   login(): void {
-    this.msalService.loginPopup().subscribe({
-      next: () => this.router.navigate(['/dashboard']),
-      error: (err) => console.error('Login error:', err),
-    });
+    this.authService.login();
   }
 }

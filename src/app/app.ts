@@ -1,9 +1,12 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink } from '@angular/router';
-import { MsalBroadcastService, MsalService } from '@azure/msal-angular';
+import { MsalBroadcastService } from '@azure/msal-angular';
+import { EventMessage, EventType, InteractionStatus } from '@azure/msal-browser';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { filter, takeUntil } from 'rxjs/operators';
+import { AuthService } from './core/auth/auth.service';
+import { AppRole } from './core/models/role.model';
 
 @Component({
   selector: 'app-root',
@@ -13,22 +16,47 @@ import { takeUntil } from 'rxjs/operators';
   styleUrl: './app.css'
 })
 export class App implements OnInit, OnDestroy {
-  isLoggedIn = false;
-  userDisplayName: string | null = null;
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
   constructor(
-    private msalService: MsalService,
-    private msalBroadcast: MsalBroadcastService
+    private readonly authService: AuthService,
+    private readonly msalBroadcast: MsalBroadcastService
   ) {}
 
+  get isLoggedIn(): boolean {
+    return this.authService.isLoggedIn;
+  }
+
+  get userDisplayName(): string {
+    return this.authService.displayName;
+  }
+
+  get canSeeCatalog(): boolean {
+    return this.authService.hasAnyRole(AppRole.Admin, AppRole.Operator);
+  }
+
+  get canSeeReports(): boolean {
+    return this.authService.hasAnyRole(AppRole.Admin);
+  }
+
+  get canSeeAudit(): boolean {
+    return this.authService.hasAnyRole(AppRole.Admin, AppRole.Auditor);
+  }
+
   ngOnInit(): void {
+    this.msalBroadcast.inProgress$
+      .pipe(
+        filter((status) => status === InteractionStatus.None),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => this.authService.setActiveAccountFromCache());
+
     this.msalBroadcast.msalSubject$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.checkLoggedIn();
-      });
-    this.checkLoggedIn();
+      .pipe(
+        filter((msg: EventMessage) => msg.eventType === EventType.LOGIN_SUCCESS),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(() => this.authService.setActiveAccountFromCache());
   }
 
   ngOnDestroy(): void {
@@ -36,22 +64,11 @@ export class App implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private checkLoggedIn(): void {
-    const accounts = this.msalService.instance.getAllAccounts();
-    this.isLoggedIn = accounts.length > 0;
-    if (this.isLoggedIn && accounts[0]) {
-      this.userDisplayName = accounts[0].name || accounts[0].username || null;
-    }
-  }
-
   login(): void {
-    this.msalService.loginPopup().subscribe({
-      next: () => this.checkLoggedIn(),
-      error: (err) => console.error('Login error:', err),
-    });
+    this.authService.login();
   }
 
   logout(): void {
-    this.msalService.logout();
+    this.authService.logout();
   }
 }
