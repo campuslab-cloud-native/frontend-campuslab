@@ -1,1 +1,42 @@
-<p>catalog-page works!</p>
+<div class="container mt-4">
+  <h2>Catálogo</h2>
+
+  @if (canManage) {
+    <form [formGroup]="form" (ngSubmit)="save()" class="card p-3 mb-3">
+      <h5>{{ editingId() ? 'Editar recurso' : 'Nuevo recurso' }}</h5>
+      <div class="row g-2">
+        <div class="col-md-4"><input class="form-control" placeholder="Nombre" formControlName="name" /></div>
+        <div class="col-md-3">
+          <select class="form-select" formControlName="type">
+            @for (type of resourceTypes; track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-md-2"><input type="number" class="form-control" formControlName="availableQuantity" /></div>
+        <div class="col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary flex-grow-1" [disabled]="form.invalid">
+            {{ editingId() ? 'Guardar' : 'Agregar' }}
+          </button>
+          @if (editingId()) {
+            <button type="button" class="btn btn-outline-secondary" (click)="cancelEdit()">Cancelar</button>
+          }
+        </div>
+      </div>
+    </form>
+  }
+
+  <table class="table">
+    <thead><tr><th>Nombre</th><th>Tipo</th><th>Cupo disponible</th>@if (canManage) {<th></th>}</tr></thead>
+    <tbody>
+      @for (resource of resources(); track resource.id) {
+        <tr>
+          <td>{{ resource.name }}</td>
+          <td>{{ resource.type }}</td>
+          <td>{{ resource.availableQuantity }}</td>
+          @if (canManage) { <td><button class="btn btn-sm btn-outline-secondary" (click)="edit(resource)">Editar</button></td> }
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

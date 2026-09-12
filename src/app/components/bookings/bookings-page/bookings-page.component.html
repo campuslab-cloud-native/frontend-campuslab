@@ -1,1 +1,52 @@
-<p>bookings-page works!</p>
+<div class="container mt-4">
+  <h2>Reservas</h2>
+
+  @if (!canManage) {
+    <app-booking-create (created)="onBookingCreated()"></app-booking-create>
+    <hr />
+  }
+
+  <div class="d-flex align-items-center mb-3 gap-2">
+    <label class="form-label mb-0">Filtrar por estado:</label>
+    <select class="form-select w-auto" [(ngModel)]="statusFilter" (ngModelChange)="load()">
+      <option value="">Todos</option>
+      @for (status of statuses; track status) {
+        <option [value]="status">{{ status }}</option>
+      }
+    </select>
+  </div>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Laboratorio</th>
+        @if (canManage) { <th>Usuario</th> }
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Estado</th>
+        @if (canManage) { <th>Acciones</th> }
+      </tr>
+    </thead>
+    <tbody>
+      @for (booking of bookings(); track booking.id) {
+        <tr>
+          <td>{{ resourceName(booking.resourceId) }}</td>
+          @if (canManage) { <td>{{ booking.userId }}</td> }
+          <td>{{ booking.startTime | date: 'short' }}</td>
+          <td>{{ booking.endTime | date: 'short' }}</td>
+          <td>{{ booking.status }}</td>
+          @if (canManage) {
+            <td class="d-flex gap-1">
+              <button class="btn btn-sm btn-success" (click)="changeStatus(booking, BookingStatus.Aprobada)">Aprobar</button>
+              <button class="btn btn-sm btn-danger" (click)="changeStatus(booking, BookingStatus.Cancelada)">Rechazar</button>
+              <button class="btn btn-sm btn-info" (click)="changeStatus(booking, BookingStatus.EnPreparacion)">Preparar</button>
+              <button class="btn btn-sm btn-secondary" (click)="changeStatus(booking, BookingStatus.Devuelta)">Completar</button>
+            </td>
+          }
+        </tr>
+      } @empty {
+        <tr><td [attr.colspan]="canManage ? 6 : 4" class="text-center text-muted">Sin reservas todavía.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

@@ -1,1 +1,25 @@
-<p>audit-page works!</p>
+<div class="container mt-4">
+  <h2>Auditoría</h2>
+
+  <div class="d-flex align-items-center mb-3 gap-2">
+    <label class="form-label mb-0">Filtrar por tipo de evento:</label>
+    <input class="form-control w-auto" [(ngModel)]="typeFilter" (ngModelChange)="load()" placeholder="ej: BOOKING_APPROVED" />
+  </div>
+
+  <table class="table table-sm">
+    <thead><tr><th>Evento</th><th>Reserva</th><th>Usuario</th><th>Origen</th><th>Fecha</th></tr></thead>
+    <tbody>
+      @for (event of events(); track event.eventId) {
+        <tr>
+          <td>{{ event.type }}</td>
+          <td>{{ event.bookingId }}</td>
+          <td>{{ event.userId }}</td>
+          <td>{{ event.source }}</td>
+          <td>{{ event.timestamp | date: 'short' }}</td>
+        </tr>
+      } @empty {
+        <tr><td colspan="5" class="text-center text-muted">Sin eventos de auditoría.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>

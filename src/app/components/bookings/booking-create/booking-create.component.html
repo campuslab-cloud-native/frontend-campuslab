@@ -1,1 +1,32 @@
-<p>booking-create works!</p>
+<form [formGroup]="form" (ngSubmit)="submit()" class="card p-3 mb-3">
+  <h5>Nueva reserva</h5>
+
+  <div class="mb-2">
+    <label class="form-label">Laboratorio</label>
+    <select class="form-select" formControlName="resourceId">
+      <option [ngValue]="null" disabled>Selecciona un laboratorio</option>
+      @for (lab of labs(); track lab.id) {
+        <option [ngValue]="lab.id">{{ lab.name }} (cupo: {{ lab.availableQuantity }})</option>
+      }
+    </select>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6 mb-2">
+      <label class="form-label">Inicio</label>
+      <input type="datetime-local" class="form-control" formControlName="startTime" />
+    </div>
+    <div class="col-md-6 mb-2">
+      <label class="form-label">Fin</label>
+      <input type="datetime-local" class="form-control" formControlName="endTime" />
+    </div>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger">{{ errorMessage() }}</div>
+  }
+
+  <button type="submit" class="btn btn-primary" [disabled]="form.invalid || submitting()">
+    {{ submitting() ? 'Creando...' : 'Reservar' }}
+  </button>
+</form>

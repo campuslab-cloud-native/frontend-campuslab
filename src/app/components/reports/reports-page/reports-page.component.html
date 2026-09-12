@@ -1,1 +1,24 @@
-<p>reports-page works!</p>
+<div class="container mt-4">
+  <h2>Ocupación y reportes</h2>
+
+  @if (kpis(); as k) {
+    <div class="row g-3 mb-4">
+      <div class="col-md-3"><div class="card text-center p-3"><div class="fs-3">{{ k.totalBookings }}</div><div class="text-muted">Reservas (24h)</div></div></div>
+      <div class="col-md-3"><div class="card text-center p-3"><div class="fs-3">{{ k.bookingsPerHour | number: '1.1-1' }}</div><div class="text-muted">Reservas / hora</div></div></div>
+      <div class="col-md-3"><div class="card text-center p-3"><div class="fs-3">{{ k.averageCycleTimeMinutes | number: '1.0-0' }}</div><div class="text-muted">Min. promedio de ciclo</div></div></div>
+      <div class="col-md-3"><div class="card text-center p-3"><div class="fs-3">{{ k.occupiedResources }}</div><div class="text-muted">Recursos ocupados</div></div></div>
+    </div>
+  }
+
+  <h5>Más utilizados (7 días)</h5>
+  <table class="table table-sm">
+    <thead><tr><th>Recurso</th><th>Reservas</th></tr></thead>
+    <tbody>
+      @for (resource of topResources(); track resource.resourceId) {
+        <tr><td>{{ resource.resourceName }}</td><td>{{ resource.totalBookings }}</td></tr>
+      } @empty {
+        <tr><td colspan="2" class="text-center text-muted">Sin datos todavía.</td></tr>
+      }
+    </tbody>
+  </table>
+</div>
