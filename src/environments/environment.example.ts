@@ -1,3 +1,6 @@
+// Copiar este archivo como "environment.ts" y "environment.prod.ts",
+// completando los valores reales de la app registration de Azure AD.
+// Esos dos archivos NO se commitean (ver .gitignore).
 export const environment = {
   production: false,
   azureAd: {
