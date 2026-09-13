@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { MsalService } from '@azure/msal-angular';
-import { AccountInfo } from '@azure/msal-browser';
+import { AccountInfo, AuthenticationResult } from '@azure/msal-browser';
+import { Observable } from 'rxjs';
 import { AppRole } from '../models/role.model';
 
 @Injectable({ providedIn: 'root' })
@@ -38,6 +39,10 @@ export class AuthService {
     if (accounts.length > 0 && !this.msalService.instance.getActiveAccount()) {
       this.msalService.instance.setActiveAccount(accounts[0]);
     }
+  }
+
+  handleRedirect(): Observable<AuthenticationResult | null> {
+    return this.msalService.handleRedirectObservable();
   }
 
   login(): void {

@@ -44,6 +44,11 @@ export class App implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.authService.handleRedirect().subscribe({
+      next: () => this.authService.setActiveAccountFromCache(),
+      error: (err) => console.error('Error procesando el redirect de Azure AD', err),
+    });
+
     this.msalBroadcast.inProgress$
       .pipe(
         filter((status) => status === InteractionStatus.None),
