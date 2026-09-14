@@ -11,7 +11,7 @@
     <select class="form-select w-auto" [(ngModel)]="statusFilter" (ngModelChange)="load()">
       <option value="">Todos</option>
       @for (status of statuses; track status) {
-        <option [value]="status">{{ status }}</option>
+        <option [value]="status">{{ statusLabel(status) }}</option>
       }
     </select>
   </div>
@@ -34,7 +34,7 @@
           @if (canManage) { <td>{{ booking.userId }}</td> }
           <td>{{ booking.startTime | date: 'short' }}</td>
           <td>{{ booking.endTime | date: 'short' }}</td>
-          <td>{{ booking.status }}</td>
+          <td>{{ statusLabel(booking.status) }}</td>
           @if (canManage) {
             <td class="d-flex gap-1">
               <button class="btn btn-sm btn-success" (click)="changeStatus(booking, BookingStatus.Aprobada)">Aprobar</button>

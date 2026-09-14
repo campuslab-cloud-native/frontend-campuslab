@@ -1,10 +1,10 @@
 export enum BookingStatus {
-  Solicitada = 'SOLICITADA',
-  Aprobada = 'APROBADA',
-  EnPreparacion = 'EN_PREPARACION',
-  EnUso = 'EN_USO',
-  Devuelta = 'DEVUELTA',
-  Cancelada = 'CANCELADA'
+  Solicitada = 'REQUESTED',
+  Aprobada = 'APPROVED',
+  EnPreparacion = 'IN_PREPARATION',
+  EnUso = 'IN_USE',
+  Devuelta = 'RETURNED',
+  Cancelada = 'CANCELLED'
 }
 
 export interface Booking {

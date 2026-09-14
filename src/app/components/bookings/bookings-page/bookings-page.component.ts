@@ -21,6 +21,15 @@ const STATUS_PRIORITY: Record<BookingStatus, number> = {
   [BookingStatus.Cancelada]: 5,
 };
 
+const STATUS_LABELS: Record<BookingStatus, string> = {
+  [BookingStatus.Solicitada]: 'Solicitada',
+  [BookingStatus.Aprobada]: 'Aprobada',
+  [BookingStatus.EnPreparacion]: 'En preparación',
+  [BookingStatus.EnUso]: 'En uso',
+  [BookingStatus.Devuelta]: 'Devuelta',
+  [BookingStatus.Cancelada]: 'Cancelada',
+};
+
 @Component({
   selector: 'app-bookings-page',
   standalone: true,
@@ -47,9 +56,12 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
     return this.auth.hasAnyRole(AppRole.Admin, AppRole.Operator);
   }
 
-  
   get canCreate(): boolean {
     return this.auth.hasAnyRole(AppRole.Client, AppRole.Operator);
+  }
+
+  statusLabel(status: BookingStatus): string {
+    return STATUS_LABELS[status];
   }
 
   ngOnInit(): void {
