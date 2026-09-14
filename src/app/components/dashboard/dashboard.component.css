@@ -1,11 +1,12 @@
+.hero-section {
+  min-height: 100vh;
+  margin-top: -6rem;
+  display: flex;
+  align-items: center;
+}
+
 .hero {
-  position: fixed;
-  top: 50%;
-  left: 8%;
-  transform: translateY(-50%);
   max-width: 480px;
-  text-align: left;
-  z-index: 1;
 }
 
 .hero-title {
@@ -24,4 +25,70 @@
   color: #55607a;
   font-size: 1.1rem;
   line-height: 1.6;
+}
+
+.widget-section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.widget-card {
+  width: 100%;
+  max-width: 720px;
+  padding: 3rem !important;
+}
+
+.widget-card h5 {
+  font-family: 'Space Grotesk', 'Courier New', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+}
+
+.widget-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 1.1rem;
+}
+
+.widget-row:last-of-type {
+  border-bottom: none;
+}
+
+.widget-link {
+  display: inline-block;
+  margin-top: 1.5rem;
+  color: #6b7dbd;
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.widget-link:hover {
+  text-decoration: underline;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1e2530;
+  font-family: 'Space Grotesk', 'Courier New', sans-serif;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #6b7590;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
 }

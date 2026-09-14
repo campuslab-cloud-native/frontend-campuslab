@@ -1,6 +1,80 @@
-<div class="container mt-4">
-  <div class="hero">
-    <h1 class="hero-title">CampusLab</h1>
-    <p class="hero-description">Reserva de laboratorios y equipos académicos</p>
+<div class="container">
+  <div class="hero-section">
+    <div class="hero">
+      <h1 class="hero-title">CampusLab</h1>
+      <p class="hero-description">Reserva de laboratorios y equipos académicos.</p>
+    </div>
+  </div>
+
+  <div class="widget-section">
+    @if (isAdmin) {
+      <div class="card p-4 widget-card">
+        <h5 class="mb-3">Ocupación de laboratorios</h5>
+        @if (kpis(); as k) {
+          <div class="row g-3">
+            <div class="col-6 col-md-3">
+              <div class="stat"><div class="stat-value">{{ k.occupiedResources }}</div><div class="stat-label">Ocupados</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat"><div class="stat-value">{{ k.totalBookings }}</div><div class="stat-label">Reservas (24h)</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat"><div class="stat-value">{{ k.bookingsPerHour | number: '1.1-1' }}</div><div class="stat-label">Por hora</div></div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat"><div class="stat-value">{{ k.averageCycleTimeMinutes | number: '1.0-0' }}</div><div class="stat-label">Min. ciclo</div></div>
+            </div>
+          </div>
+        } @else {
+          <p class="text-muted mb-0">Cargando datos...</p>
+        }
+        <a routerLink="/reports" class="widget-link">Ver reportes completos →</a>
+      </div>
+    }
+
+    @if (isOperator) {
+      <div class="card p-4 widget-card">
+        <h5 class="mb-3">Reservas por preparar</h5>
+        @for (booking of pendingBookings(); track booking.id) {
+          <div class="widget-row">
+            <span>Reserva #{{ booking.id }}</span>
+            <span class="text-muted">{{ booking.startTime | date: 'short' }}</span>
+          </div>
+        } @empty {
+          <p class="text-muted mb-0">No hay reservas pendientes de preparación.</p>
+        }
+        <a routerLink="/bookings" class="widget-link">Ver todas las reservas →</a>
+      </div>
+    }
+
+    @if (isClient) {
+      <div class="card p-4 widget-card">
+        <h5 class="mb-3">Tus próximas reservas</h5>
+        @for (booking of myBookings(); track booking.id) {
+          <div class="widget-row">
+            <span>{{ booking.startTime | date: 'short' }}</span>
+            <span class="text-muted">{{ booking.status }}</span>
+          </div>
+        } @empty {
+          <p class="text-muted mb-0">Todavía no tenés reservas.</p>
+        }
+        <a routerLink="/bookings" class="widget-link">Ver mis reservas →</a>
+      </div>
+    }
+
+    @if (isAuditor) {
+      <div class="card p-4 widget-card">
+        <h5 class="mb-3">Auditoría reciente</h5>
+        @for (event of recentEvents(); track event.eventId) {
+          <div class="widget-row">
+            <span>{{ event.type }}</span>
+            <span class="text-muted">{{ event.timestamp | date: 'short' }}</span>
+          </div>
+        } @empty {
+          <p class="text-muted mb-0">Sin eventos recientes.</p>
+        }
+        <a routerLink="/audit" class="widget-link">Ver auditoría completa →</a>
+      </div>
+    }
   </div>
 </div>
