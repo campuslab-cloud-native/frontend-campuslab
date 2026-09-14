@@ -3,6 +3,8 @@ import { MsalService } from '@azure/msal-angular';
 import { AccountInfo, AuthenticationResult } from '@azure/msal-browser';
 import { Observable } from 'rxjs';
 import { AppRole } from '../models/role.model';
+import { environment } from '../../../environments/environment';
+
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -45,8 +47,11 @@ export class AuthService {
     return this.msalService.handleRedirectObservable();
   }
 
-  login(): void {
-    this.msalService.loginRedirect();
+    login(): void {
+    this.msalService.loginRedirect({
+      scopes: [environment.azureAd.apiScope],
+      redirectStartPage: `${window.location.origin}/dashboard`,
+    });
   }
 
   logout(): void {

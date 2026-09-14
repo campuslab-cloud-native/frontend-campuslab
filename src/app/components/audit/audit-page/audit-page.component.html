@@ -1,9 +1,9 @@
 <div class="container mt-4">
-  <h2>Auditoría</h2>
+  <h2 class="page-title">Auditoría</h2>
 
   <div class="d-flex align-items-center mb-3 gap-2">
     <label class="form-label mb-0">Filtrar por tipo de evento:</label>
-    <input class="form-control w-auto" [(ngModel)]="typeFilter" (ngModelChange)="load()" placeholder="ej: BOOKING_APPROVED" />
+    <input class="form-control w-auto" [(ngModel)]="typeFilter" (ngModelChange)="load()" placeholder="ej: RESERVA_APROBADA" />
   </div>
 
   <table class="table table-sm">
@@ -12,7 +12,11 @@
       @for (event of events(); track event.eventId) {
         <tr>
           <td>{{ event.type }}</td>
-          <td>{{ event.bookingId }}</td>
+          <td>
+            <button type="button" class="btn btn-link btn-sm p-0" (click)="viewTimeline(event.bookingId)">
+              #{{ event.bookingId }}
+            </button>
+          </td>
           <td>{{ event.userId }}</td>
           <td>{{ event.source }}</td>
           <td>{{ event.timestamp | date: 'short' }}</td>
@@ -22,4 +26,24 @@
       }
     </tbody>
   </table>
+
+  @if (selectedBookingId(); as bookingId) {
+    <div class="card p-3 mt-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Timeline de la reserva #{{ bookingId }}</h5>
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="closeTimeline()">Cerrar</button>
+      </div>
+      <ol class="timeline-list">
+        @for (event of timeline(); track event.eventId) {
+          <li>
+            <span class="timeline-type">{{ event.type }}</span>
+            <span class="timeline-date">{{ event.timestamp | date: 'short' }}</span>
+            <span class="timeline-user">{{ event.userId }}</span>
+          </li>
+        } @empty {
+          <li class="text-muted">Sin eventos para esta reserva.</li>
+        }
+      </ol>
+    </div>
+  }
 </div>

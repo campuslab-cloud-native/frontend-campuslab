@@ -1,29 +1,21 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-  <div class="container-fluid">
-    <a class="navbar-brand" routerLink="/">CampusLab</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item" *ngIf="isLoggedIn"><a class="nav-link" routerLink="/bookings">Reservas</a></li>
-        <li class="nav-item" *ngIf="canSeeCatalog"><a class="nav-link" routerLink="/catalog">Catálogo</a></li>
-        <li class="nav-item" *ngIf="canSeeReports"><a class="nav-link" routerLink="/reports">Reportes</a></li>
-        <li class="nav-item" *ngIf="canSeeAudit"><a class="nav-link" routerLink="/audit">Auditoría</a></li>
-        <li class="nav-item"><span class="nav-link" *ngIf="isLoggedIn">{{ userDisplayName }}</span></li>
-        <li class="nav-item">
-          <button
-            class="btn btn-sm"
-            [ngClass]="isLoggedIn ? 'btn-danger' : 'btn-success'"
-            (click)="isLoggedIn ? logout() : login()">
-            {{ isLoggedIn ? 'Logout' : 'Login' }}
-          </button>
-        </li>
-      </ul>
-    </div>
+<div class="top-bar" *ngIf="!isLoginPage && isLoggedIn">
+  <div class="top-bar-left">
+    <p class="role-badge"><span class="dot"></span> {{ roleLabel }}</p>
   </div>
-</nav>
+  <div class="top-bar-center">
+    <a routerLink="/dashboard" class="pill-link">Inicio</a>
+    <a routerLink="/bookings" class="pill-link">Reservas</a>
+    <a *ngIf="canSeeCatalog" routerLink="/catalog" class="pill-link">Catálogo</a>
+    <a *ngIf="canSeeReports" routerLink="/reports" class="pill-link">Reportes</a>
+    <a *ngIf="canSeeAudit" routerLink="/audit" class="pill-link">Auditoría</a>
+  </div>
+  <div class="top-bar-right">
+    <button class="btn-nav" (click)="logout()">Cerrar sesión</button>
+  </div>
+</div>
 
-<div class="container-fluid mt-4">
+<img *ngIf="!isLoginPage" class="app-cube" src="/cube.png" alt="" aria-hidden="true" />
+
+<div [class.container-fluid]="!isLoginPage" [class.page-content]="!isLoginPage">
   <router-outlet></router-outlet>
 </div>

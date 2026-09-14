@@ -1,12 +1,19 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink } from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet, RouterLink } from '@angular/router';
 import { MsalBroadcastService } from '@azure/msal-angular';
 import { EventMessage, EventType, InteractionStatus } from '@azure/msal-browser';
 import { Subject } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { AuthService } from './core/auth/auth.service';
 import { AppRole } from './core/models/role.model';
+
+const ROLE_LABELS: Record<AppRole, string> = {
+  [AppRole.Admin]: 'ADMINISTRADOR',
+  [AppRole.Operator]: 'OPERADOR',
+  [AppRole.Client]: 'ESTUDIANTE',
+  [AppRole.Auditor]: 'AUDITOR',
+};
 
 @Component({
   selector: 'app-root',
@@ -18,17 +25,20 @@ import { AppRole } from './core/models/role.model';
 export class App implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
+  isLoginPage = false;
+
   constructor(
     private readonly authService: AuthService,
-    private readonly msalBroadcast: MsalBroadcastService
+    private readonly msalBroadcast: MsalBroadcastService,
+    private readonly router: Router
   ) {}
 
   get isLoggedIn(): boolean {
     return this.authService.isLoggedIn;
   }
 
-  get userDisplayName(): string {
-    return this.authService.displayName;
+  get roleLabel(): string {
+    return this.authService.roles.map((role) => ROLE_LABELS[role]).join(' / ') || 'USUARIO';
   }
 
   get canSeeCatalog(): boolean {
@@ -44,6 +54,17 @@ export class App implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.isLoginPage = this.router.url.startsWith('/login');
+
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((event) => {
+        this.isLoginPage = event.urlAfterRedirects.startsWith('/login');
+      });
+
     this.authService.handleRedirect().subscribe({
       next: () => this.authService.setActiveAccountFromCache(),
       error: (err) => console.error('Error procesando el redirect de Azure AD', err),

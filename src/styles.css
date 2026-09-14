@@ -1,1 +1,61 @@
-/* You can add global styles to this file, and also import other style files */
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-family: 'Courier New', ui-monospace, monospace;
+  background: linear-gradient(135deg, #d6c9f7 0%, #cfe0fb 50%, #e3d6f9 100%);
+  background-attachment: fixed;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  box-shadow: 0 20px 45px rgba(99, 102, 241, 0.15);
+}
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.2);
+  --bs-table-border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.page-title {
+  font-family: 'Space Grotesk', 'Courier New', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1e2530;
+  margin-bottom: 1.5rem;
+}
+
+.form-select,
+.form-control {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  border-radius: 999px !important;
+  font-family: 'Courier New', ui-monospace, monospace;
+  color: #1e2530;
+}
+
+.btn-primary {
+  background-color: #9faed8 !important;
+  border-color: #9faed8 !important;
+  border-radius: 999px !important;
+  font-family: 'Courier New', ui-monospace, monospace;
+  color: #ffffff !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: #8b9cc9 !important;
+  border-color: #8b9cc9 !important;
+}

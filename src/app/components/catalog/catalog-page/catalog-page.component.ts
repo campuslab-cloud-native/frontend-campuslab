@@ -6,6 +6,12 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { AppRole } from '../../../core/models/role.model';
 import { CatalogResource, ResourceType } from '../../../core/models/resource.model';
 
+const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
+  [ResourceType.Lab]: 'Laboratorio',
+  [ResourceType.Equipment]: 'Equipo',
+  [ResourceType.Supply]: 'Insumo',
+};
+
 @Component({
   selector: 'app-catalog-page',
   standalone: true,
@@ -35,6 +41,10 @@ export class CatalogPageComponent {
 
   constructor() {
     this.load();
+  }
+
+  resourceTypeLabel(type: ResourceType): string {
+    return RESOURCE_TYPE_LABELS[type];
   }
 
   load(): void {

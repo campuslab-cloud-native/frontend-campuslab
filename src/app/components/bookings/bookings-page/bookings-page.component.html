@@ -1,5 +1,5 @@
 <div class="container mt-4">
-  <h2>Reservas</h2>
+  <h2 class="page-title">Reservas</h2>
 
   @if (!canManage) {
     <app-booking-create (created)="onBookingCreated()"></app-booking-create>
@@ -40,6 +40,7 @@
               <button class="btn btn-sm btn-success" (click)="changeStatus(booking, BookingStatus.Aprobada)">Aprobar</button>
               <button class="btn btn-sm btn-danger" (click)="changeStatus(booking, BookingStatus.Cancelada)">Rechazar</button>
               <button class="btn btn-sm btn-info" (click)="changeStatus(booking, BookingStatus.EnPreparacion)">Preparar</button>
+              <button class="btn btn-sm btn-primary" (click)="changeStatus(booking, BookingStatus.EnUso)">En uso</button>
               <button class="btn btn-sm btn-secondary" (click)="changeStatus(booking, BookingStatus.Devuelta)">Completar</button>
             </td>
           }

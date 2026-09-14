@@ -12,6 +12,15 @@ import { Booking, BookingStatus } from '../../../core/models/booking.model';
 
 const POLL_INTERVAL_MS = 20000;
 
+const STATUS_PRIORITY: Record<BookingStatus, number> = {
+  [BookingStatus.Solicitada]: 0,
+  [BookingStatus.EnPreparacion]: 1,
+  [BookingStatus.Aprobada]: 2,
+  [BookingStatus.EnUso]: 3,
+  [BookingStatus.Devuelta]: 4,
+  [BookingStatus.Cancelada]: 5,
+};
+
 @Component({
   selector: 'app-bookings-page',
   standalone: true,
@@ -59,10 +68,16 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
 
   load(): void {
     this.bookingService.getBookings({ status: this.statusFilter || undefined }).subscribe((bookings) => {
+      
+      
+      const sorted = this.canManage
+        ? [...bookings].sort((a, b) => STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status])
+        : bookings;
+
       if (!this.canManage) {
-        this.notifyStatusChanges(bookings);
+        this.notifyStatusChanges(sorted);
       }
-      this.bookings.set(bookings);
+      this.bookings.set(sorted);
     });
   }
 

@@ -1,5 +1,5 @@
 <div class="container mt-4">
-  <h2>Catálogo</h2>
+  <h2 class="page-title">Catálogo</h2>
 
   @if (canManage) {
     <form [formGroup]="form" (ngSubmit)="save()" class="card p-3 mb-3">
@@ -9,7 +9,7 @@
         <div class="col-md-3">
           <select class="form-select" formControlName="type">
             @for (type of resourceTypes; track type) {
-              <option [value]="type">{{ type }}</option>
+              <option [value]="type">{{ resourceTypeLabel(type) }}</option>
             }
           </select>
         </div>
@@ -32,7 +32,7 @@
       @for (resource of resources(); track resource.id) {
         <tr>
           <td>{{ resource.name }}</td>
-          <td>{{ resource.type }}</td>
+          <td>{{ resourceTypeLabel(resource.type) }}</td>
           <td>{{ resource.availableQuantity }}</td>
           @if (canManage) { <td><button class="btn btn-sm btn-outline-secondary" (click)="edit(resource)">Editar</button></td> }
         </tr>

@@ -16,11 +16,24 @@ export class AuditPageComponent {
   events = signal<AuditEvent[]>([]);
   typeFilter = '';
 
+  selectedBookingId = signal<number | null>(null);
+  timeline = signal<AuditEvent[]>([]);
+
   constructor() {
     this.load();
   }
 
   load(): void {
     this.auditService.getEvents({ type: this.typeFilter || undefined }).subscribe((events) => this.events.set(events));
+  }
+
+  viewTimeline(bookingId: number): void {
+    this.selectedBookingId.set(bookingId);
+    this.auditService.getBookingTimeline(bookingId).subscribe((events) => this.timeline.set(events));
+  }
+
+  closeTimeline(): void {
+    this.selectedBookingId.set(null);
+    this.timeline.set([]);
   }
 }

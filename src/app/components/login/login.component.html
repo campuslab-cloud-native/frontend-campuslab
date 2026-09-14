@@ -1,15 +1,20 @@
-<div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-body text-center">
-          <h2>CampusLab</h2>
-          <p>Inicia sesión con tu cuenta corporativa</p>
-          <button class="btn btn-primary" (click)="login()">
-            Iniciar sesión con Microsoft
-          </button>
-        </div>
-      </div>
-    </div>
+<div class="login-page">
+  <img class="login-cube" src="/cube.png" alt="" aria-hidden="true" />
+
+  <div class="login-card">
+    <h1 class="login-title">CampusLab</h1>
+    <p class="login-subtitle">Ingresa con tu cuenta corporativa de CampusLab</p>
+
+    <button class="btn-microsoft" (click)="login()">
+      <svg class="ms-logo" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022" />
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00" />
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef" />
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900" />
+      </svg>
+      Iniciar sesión con Microsoft
+    </button>
+
+    <p class="login-hint">Se te va a redirigir a la página de acceso de Microsoft</p>
   </div>
 </div>
