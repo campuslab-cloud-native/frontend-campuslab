@@ -15,6 +15,9 @@ export class AuditPageComponent {
 
   events = signal<AuditEvent[]>([]);
   typeFilter = '';
+  userIdFilter = '';
+  fromFilter = '';
+  toFilter = '';
 
   selectedBookingId = signal<number | null>(null);
   timeline = signal<AuditEvent[]>([]);
@@ -24,7 +27,14 @@ export class AuditPageComponent {
   }
 
   load(): void {
-    this.auditService.getEvents({ type: this.typeFilter || undefined }).subscribe((events) => this.events.set(events));
+    this.auditService
+      .getEvents({
+        type: this.typeFilter || undefined,
+        userId: this.userIdFilter || undefined,
+        from: this.toIsoStart(this.fromFilter),
+        to: this.toIsoEnd(this.toFilter),
+      })
+      .subscribe((events) => this.events.set(events));
   }
 
   viewTimeline(bookingId: number): void {
@@ -35,5 +45,15 @@ export class AuditPageComponent {
   closeTimeline(): void {
     this.selectedBookingId.set(null);
     this.timeline.set([]);
+  }
+
+  // El backend espera fechas ISO con hora (date-time); el <input type="date">
+  // solo da la parte YYYY-MM-DD, así que completamos el resto del día.
+  private toIsoStart(date: string): string | undefined {
+    return date ? `${date}T00:00:00` : undefined;
+  }
+
+  private toIsoEnd(date: string): string | undefined {
+    return date ? `${date}T23:59:59` : undefined;
   }
 }

@@ -1,7 +1,7 @@
 <div class="container mt-4">
   <h2 class="page-title">Reservas</h2>
 
-  @if (!canManage) {
+  @if (canCreate) {
     <app-booking-create (created)="onBookingCreated()"></app-booking-create>
     <hr />
   }

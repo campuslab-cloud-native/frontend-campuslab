@@ -47,6 +47,11 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
     return this.auth.hasAnyRole(AppRole.Admin, AppRole.Operator);
   }
 
+  
+  get canCreate(): boolean {
+    return this.auth.hasAnyRole(AppRole.Client, AppRole.Operator);
+  }
+
   ngOnInit(): void {
     if (!this.canManage) {
       this.browserNotify.requestPermission();
@@ -68,8 +73,6 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
 
   load(): void {
     this.bookingService.getBookings({ status: this.statusFilter || undefined }).subscribe((bookings) => {
-      
-      
       const sorted = this.canManage
         ? [...bookings].sort((a, b) => STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status])
         : bookings;

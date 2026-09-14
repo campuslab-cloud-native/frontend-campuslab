@@ -1,9 +1,23 @@
 <div class="container mt-4">
   <h2 class="page-title">Auditoría</h2>
 
-  <div class="d-flex align-items-center mb-3 gap-2">
-    <label class="form-label mb-0">Filtrar por tipo de evento:</label>
-    <input class="form-control w-auto" [(ngModel)]="typeFilter" (ngModelChange)="load()" placeholder="ej: RESERVA_APROBADA" />
+  <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
+    <div>
+      <label class="form-label mb-0">Tipo de evento</label>
+      <input class="form-control" [(ngModel)]="typeFilter" (ngModelChange)="load()" placeholder="ej: RESERVA_APROBADA" />
+    </div>
+    <div>
+      <label class="form-label mb-0">Usuario</label>
+      <input class="form-control" [(ngModel)]="userIdFilter" (ngModelChange)="load()" placeholder="email o ID" />
+    </div>
+    <div>
+      <label class="form-label mb-0">Desde</label>
+      <input type="date" class="form-control" [(ngModel)]="fromFilter" (ngModelChange)="load()" />
+    </div>
+    <div>
+      <label class="form-label mb-0">Hasta</label>
+      <input type="date" class="form-control" [(ngModel)]="toFilter" (ngModelChange)="load()" />
+    </div>
   </div>
 
   <table class="table table-sm">
