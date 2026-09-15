@@ -26,10 +26,17 @@ export class AuthService {
     return this.activeAccount?.name ?? this.activeAccount?.username ?? '';
   }
 
-  get roles(): AppRole[] {
-    const claims = this.activeAccount?.idTokenClaims as { roles?: string[] } | undefined;
+   get roles(): AppRole[] {
+    if (!this.activeAccount) {
+      return [];
+    }
+
+    const claims = this.activeAccount.idTokenClaims as { roles?: string[] } | undefined;
     const raw = claims?.roles ?? [];
-    return raw.filter((role): role is AppRole => Object.values(AppRole).includes(role as AppRole));
+    const matched = raw.filter((role): role is AppRole => Object.values(AppRole).includes(role as AppRole));
+
+    
+    return matched.length > 0 ? matched : [AppRole.Client];
   }
 
   hasAnyRole(...allowed: AppRole[]): boolean {
