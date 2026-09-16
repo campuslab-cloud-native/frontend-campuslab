@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogService } from '../../../core/services/catalog.service';
 import { BookingService } from '../../../core/services/booking.service';
@@ -49,10 +50,17 @@ export class BookingCreateComponent {
         this.form.reset();
         this.created.emit();
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.submitting.set(false);
-        this.errorMessage.set('No se pudo crear la reserva. Intenta nuevamente.');
+        this.errorMessage.set(this.resolveCreateErrorMessage(err));
       },
     });
+  }
+
+  private resolveCreateErrorMessage(err: HttpErrorResponse): string {
+    if (err.status === 409) {
+      return 'Ese laboratorio ya está reservado en el horario seleccionado. Elige otra fecha u horario.';
+    }
+    return 'No se pudo crear la reserva. Intenta nuevamente.';
   }
 }

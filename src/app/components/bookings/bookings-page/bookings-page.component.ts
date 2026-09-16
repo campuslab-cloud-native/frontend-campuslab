@@ -57,7 +57,7 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   }
 
   get canCreate(): boolean {
-    return this.auth.hasAnyRole(AppRole.Client, AppRole.Operator);
+    return this.auth.hasAnyRole(AppRole.Client, AppRole.Operator, AppRole.Admin);
   }
 
   statusLabel(status: BookingStatus): string {
