@@ -33,7 +33,7 @@ export class BookingCreateComponent {
     this.catalogService.getResources().subscribe({
       next: (resources) =>
         this.labs.set(resources.filter((r) => r.type === ResourceType.Lab && r.availableQuantity > 0)),
-      error: () => this.errorMessage.set('No se pudo cargar el catálogo de laboratorios.'),
+      error: () => {},
     });
   }
 
