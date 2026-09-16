@@ -36,12 +36,12 @@
           <td>{{ booking.endTime | date: 'short' }}</td>
           <td>{{ statusLabel(booking.status) }}</td>
           @if (canManage) {
-            <td class="d-flex gap-1">
-              <button class="btn btn-sm btn-success" (click)="changeStatus(booking, BookingStatus.Aprobada)">Aprobar</button>
-              <button class="btn btn-sm btn-danger" (click)="changeStatus(booking, BookingStatus.Cancelada)">Rechazar</button>
-              <button class="btn btn-sm btn-info" (click)="changeStatus(booking, BookingStatus.EnPreparacion)">Preparar</button>
-              <button class="btn btn-sm btn-primary" (click)="changeStatus(booking, BookingStatus.EnUso)">En uso</button>
-              <button class="btn btn-sm btn-secondary" (click)="changeStatus(booking, BookingStatus.Devuelta)">Completar</button>
+            <td class="actions-cell">
+              <button class="btn-action btn-action--approve" (click)="changeStatus(booking, BookingStatus.Aprobada)">Aprobar</button>
+              <button class="btn-action btn-action--reject" (click)="changeStatus(booking, BookingStatus.Cancelada)">Rechazar</button>
+              <button class="btn-action btn-action--prepare" (click)="changeStatus(booking, BookingStatus.EnPreparacion)">Preparar</button>
+              <button class="btn-action btn-action--inuse" (click)="changeStatus(booking, BookingStatus.EnUso)">En uso</button>
+              <button class="btn-action btn-action--complete" (click)="changeStatus(booking, BookingStatus.Devuelta)">Completar</button>
             </td>
           }
         </tr>
