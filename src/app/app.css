@@ -113,3 +113,34 @@
 .page-content {
   padding-top: 3rem;
 }
+
+@media (max-width: 992px) {
+  .top-bar {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "badge logout"
+      "nav nav";
+    row-gap: 0.75rem;
+    padding: 0 1rem;
+    top: 0.75rem;
+  }
+  .top-bar-left { grid-area: badge; }
+  .top-bar-right { grid-area: logout; }
+  .top-bar-center {
+    grid-area: nav;
+    justify-self: stretch;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+  }
+  .top-bar-center::-webkit-scrollbar { display: none; }
+}
+
+@media (max-width: 576px) {
+  .pill-link { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
+  .btn-nav { padding: 0.4rem 1rem; font-size: 0.8rem; }
+  .role-badge { font-size: 0.7rem; }
+  .page-content { padding-top: 1.5rem; }
+}

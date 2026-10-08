@@ -6,7 +6,7 @@
     <hr />
   }
 
-  <div class="d-flex align-items-center mb-3 gap-2">
+  <div class="d-flex flex-wrap align-items-center mb-3 gap-2">
     <label class="form-label mb-0">Filtrar por estado:</label>
     <select class="form-select w-auto" [(ngModel)]="statusFilter" (ngModelChange)="load()">
       <option value="">Todos</option>
@@ -16,7 +16,7 @@
     </select>
   </div>
 
-  <table class="table table-striped">
+  <table class="table table-striped table-stack">
     <thead>
       <tr>
         <th>Laboratorio</th>
@@ -30,13 +30,13 @@
     <tbody>
       @for (booking of bookings(); track booking.id) {
         <tr>
-          <td>{{ resourceName(booking.resourceId) }}</td>
-          @if (canManage) { <td>{{ booking.userId }}</td> }
-          <td>{{ booking.startTime | date: 'short' }}</td>
-          <td>{{ booking.endTime | date: 'short' }}</td>
-          <td>{{ statusLabel(booking.status) }}</td>
+          <td data-label="Laboratorio">{{ resourceName(booking.resourceId) }}</td>
+          @if (canManage) { <td data-label="Usuario">{{ booking.userId }}</td> }
+          <td data-label="Inicio">{{ booking.startTime | date: 'short' }}</td>
+          <td data-label="Fin">{{ booking.endTime | date: 'short' }}</td>
+          <td data-label="Estado">{{ statusLabel(booking.status) }}</td>
           @if (canManage) {
-            <td class="actions-cell">
+            <td class="actions-cell" data-label="Acciones">
               <button class="btn-action btn-action--approve" (click)="changeStatus(booking, BookingStatus.Aprobada)">Aprobar</button>
               <button class="btn-action btn-action--reject" (click)="changeStatus(booking, BookingStatus.Cancelada)">Rechazar</button>
               <button class="btn-action btn-action--prepare" (click)="changeStatus(booking, BookingStatus.EnPreparacion)">Preparar</button>

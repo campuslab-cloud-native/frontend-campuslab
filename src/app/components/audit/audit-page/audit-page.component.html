@@ -1,42 +1,42 @@
 <div class="container mt-4">
   <h2 class="page-title">Auditoría</h2>
 
-  <div class="d-flex flex-wrap align-items-end gap-2 mb-3">
-    <div>
+  <div class="row g-2 align-items-end mb-3">
+    <div class="col-12 col-sm-6 col-lg">
       <label class="form-label mb-0">Tipo de evento</label>
       <input class="form-control" [(ngModel)]="typeFilter" placeholder="ej: RESERVA_APROBADA" />
     </div>
-    <div>
+    <div class="col-12 col-sm-6 col-lg">
       <label class="form-label mb-0">Usuario</label>
       <input class="form-control" [(ngModel)]="userIdFilter" placeholder="email o ID" />
     </div>
-    <div>
+    <div class="col-6 col-lg">
       <label class="form-label mb-0">Desde</label>
       <input type="date" class="form-control" [(ngModel)]="fromFilter" />
     </div>
-    <div>
+    <div class="col-6 col-lg">
       <label class="form-label mb-0">Hasta</label>
       <input type="date" class="form-control" [(ngModel)]="toFilter" />
     </div>
-    <div>
-      <button type="button" class="btn btn-primary" (click)="load()">Buscar</button>
+    <div class="col-12 col-lg-auto">
+      <button type="button" class="btn btn-primary w-100" (click)="load()">Buscar</button>
     </div>
   </div>
 
-  <table class="table table-sm">
+  <table class="table table-sm table-stack">
     <thead><tr><th>Evento</th><th>Reserva</th><th>Usuario</th><th>Origen</th><th>Fecha</th></tr></thead>
     <tbody>
       @for (event of events(); track event.eventId) {
         <tr>
-          <td>{{ event.type }}</td>
-          <td>
+          <td data-label="Evento">{{ event.type }}</td>
+          <td data-label="Reserva">
             <button type="button" class="btn btn-link btn-sm p-0" (click)="viewTimeline(event.bookingId)">
               #{{ event.bookingId }}
             </button>
           </td>
-          <td>{{ event.userId }}</td>
-          <td>{{ event.source }}</td>
-          <td>{{ event.timestamp | date: 'short' }}</td>
+          <td data-label="Usuario">{{ event.userId }}</td>
+          <td data-label="Origen">{{ event.source }}</td>
+          <td data-label="Fecha">{{ event.timestamp | date: 'short' }}</td>
         </tr>
       } @empty {
         <tr><td colspan="5" class="text-center text-muted">Sin eventos de auditoría.</td></tr>
