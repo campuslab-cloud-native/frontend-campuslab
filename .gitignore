@@ -46,3 +46,7 @@ Thumbs.db
 # Configuración de entorno con datos de la app registration de Azure AD
 /src/environments/environment.ts
 /src/environments/environment.prod.ts
+
+
+# Imagen Docker exportada para desplegar en la EC2
+*.tar
