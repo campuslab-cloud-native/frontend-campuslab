@@ -1,0 +1,30 @@
+.period-label {
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 0.9rem;
+  color: #1e2530;
+}
+
+.period-btn {
+  padding: 0.4rem 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 0.85rem;
+  color: #1e2530;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.period-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.18);
+}
+
+.period-btn.active {
+  background: #9faed8;
+  border-color: #9faed8;
+  color: #ffffff;
+}

@@ -6,11 +6,37 @@ import { CatalogService } from '../../../core/services/catalog.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { CatalogResource, ResourceType } from '../../../core/models/resource.model';
 import { Booking } from '../../../core/models/booking.model';
-import { MAX_BOOKING_HOURS, MAX_BOOKING_MS, overlaps } from '../../../core/utils/booking-time';
+import {
+  MAX_BOOKING_HOURS,
+  MAX_BOOKING_MS,
+  PREP_BUFFER_MINUTES,
+  countsAsCupo,
+  toDateKey,
+  toLocalInput,
+} from '../../../core/utils/booking-time';
 
 interface SlotIssue {
   message: string;
 }
+
+interface StartOption {
+  time: string;
+  busy: boolean;
+}
+
+const FIRST_START_HOUR = 8;
+const LAST_START_HOUR = 20;
+const START_STEP_MINUTES = 30;
+const BUFFER_MS = PREP_BUFFER_MINUTES * 60000;
+
+const DURATIONS = [
+  { minutes: 30, label: '30 minutos' },
+  { minutes: 60, label: '1 hora' },
+  { minutes: 90, label: '1 hora 30 min' },
+  { minutes: 120, label: '2 horas' },
+];
+
+const pad = (n: number): string => String(n).padStart(2, '0');
 
 @Component({
   selector: 'app-booking-create',
@@ -27,11 +53,19 @@ export class BookingCreateComponent {
   private readonly bookingService = inject(BookingService);
 
   readonly maxHours = MAX_BOOKING_HOURS;
+  readonly durations = DURATIONS;
+  readonly today = toDateKey(new Date());
 
   labs = signal<CatalogResource[]>([]);
   existing = signal<Booking[]>([]);
   submitting = signal(false);
   errorMessage = signal<string | null>(null);
+
+  pickerOpen = signal(false);
+  pickDate = signal('');
+  pickStart = signal('');
+  pickDuration = signal(60);
+  pickDateError = signal(false);
 
   form = this.fb.nonNullable.group({
     resourceId: [null as number | null, Validators.required],
@@ -48,6 +82,111 @@ export class BookingCreateComponent {
     this.loadExisting();
   }
 
+  labSelected(): boolean {
+    return this.form.getRawValue().resourceId !== null;
+  }
+
+  selectedDay(): string | null {
+    const { startTime } = this.form.getRawValue();
+    return startTime ? startTime.slice(0, 10) : null;
+  }
+
+  cupoFor(lab: CatalogResource): number {
+    const day = this.selectedDay();
+    if (!day) return lab.availableQuantity;
+
+    const now = new Date();
+    const used = this.existing().filter(
+      (b) =>
+        b.resourceId === lab.id &&
+        countsAsCupo(b, now) &&
+        toDateKey(new Date(b.startTime)) === day
+    ).length;
+    return Math.max(0, lab.availableQuantity - used);
+  }
+
+  slotLabel(): string {
+    const { startTime, endTime } = this.form.getRawValue();
+    if (!startTime || !endTime) return '';
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    return (
+      `${pad(start.getDate())}/${pad(start.getMonth() + 1)}/${start.getFullYear()} · ` +
+      `${pad(start.getHours())}:${pad(start.getMinutes())} – ${pad(end.getHours())}:${pad(end.getMinutes())}`
+    );
+  }
+
+  startOptions(): StartOption[] {
+    const options: StartOption[] = [];
+    const date = this.pickDate();
+    const labId = this.form.getRawValue().resourceId;
+    const earliest = Date.now() + BUFFER_MS;
+
+    for (let minutes = FIRST_START_HOUR * 60; minutes <= LAST_START_HOUR * 60; minutes += START_STEP_MINUTES) {
+      const time = `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
+      if (!date) {
+        options.push({ time, busy: false });
+        continue;
+      }
+      const start = new Date(`${date}T${time}`);
+      if (start.getTime() < earliest) continue;
+      const end = new Date(start.getTime() + this.pickDuration() * 60000);
+      options.push({ time, busy: labId !== null && this.conflictsWithExisting(labId, start, end) });
+    }
+    return options;
+  }
+
+  togglePicker(): void {
+    if (this.pickerOpen()) {
+      this.pickerOpen.set(false);
+      return;
+    }
+    const { startTime, endTime } = this.form.getRawValue();
+    if (startTime && endTime) {
+      this.pickDate.set(startTime.slice(0, 10));
+      this.pickStart.set(startTime.slice(11, 16));
+      this.pickDuration.set(
+        Math.round((new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000)
+      );
+    }
+    this.pickerOpen.set(true);
+  }
+
+  closePicker(): void {
+    this.pickerOpen.set(false);
+  }
+
+  onPickDate(value: string): void {
+    const valid = !!value && value >= this.today;
+    this.pickDateError.set(!!value && !valid);
+    this.pickDate.set(valid ? value : '');
+    this.resetStartIfUnavailable();
+  }
+
+  onPickDuration(minutes: number): void {
+    this.pickDuration.set(minutes);
+    this.resetStartIfUnavailable();
+  }
+
+  canAccept(): boolean {
+    const option = this.startOptions().find((o) => o.time === this.pickStart());
+    return (
+      !!this.pickDate() &&
+      !!option &&
+      !option.busy &&
+      this.pickDuration() > 0 &&
+      this.pickDuration() * 60000 <= MAX_BOOKING_MS
+    );
+  }
+
+  acceptPicker(): void {
+    if (!this.canAccept()) return;
+    const start = new Date(`${this.pickDate()}T${this.pickStart()}`);
+    const end = new Date(start.getTime() + this.pickDuration() * 60000);
+    this.form.patchValue({ startTime: toLocalInput(start), endTime: toLocalInput(end) });
+    this.pickerOpen.set(false);
+  }
+
   slotIssue(): SlotIssue | null {
     const { resourceId, startTime, endTime } = this.form.getRawValue();
     if (!startTime || !endTime) return null;
@@ -55,6 +194,12 @@ export class BookingCreateComponent {
     const start = new Date(startTime);
     const end = new Date(endTime);
 
+    if (start.getTime() < Date.now()) {
+      return { message: 'No se puede reservar en una fecha u hora que ya pasó.' };
+    }
+    if (start.getTime() < Date.now() + BUFFER_MS) {
+      return { message: `La reserva debe empezar al menos ${PREP_BUFFER_MINUTES} minutos desde ahora (tiempo de preparación).` };
+    }
     if (end <= start) {
       return { message: 'La hora de fin debe ser posterior a la de inicio.' };
     }
@@ -63,11 +208,17 @@ export class BookingCreateComponent {
     }
 
     const labs = this.labs();
-    if (labs.length > 0 && labs.every((lab) => this.isBusy(lab.id, start, end))) {
-      return { message: 'Todos los laboratorios están ocupados en ese horario. Elegí otra fecha u horario.' };
+    if (labs.length > 0 && labs.every((lab) => this.cupoFor(lab) === 0)) {
+      return { message: 'No hay cupos disponibles para ese día. Elige otra fecha.' };
     }
-    if (resourceId !== null && this.isBusy(resourceId, start, end)) {
-      return { message: 'Ese laboratorio ya está reservado en ese horario. Elegí otra fecha, otro horario u otro laboratorio.' };
+    const selected = labs.find((lab) => lab.id === resourceId);
+    if (selected && this.cupoFor(selected) === 0) {
+      return { message: 'No hay cupos disponibles en este laboratorio para ese día. Elige otra fecha u otro laboratorio.' };
+    }
+    if (resourceId !== null && this.conflictsWithExisting(resourceId, start, end)) {
+      return {
+        message: `Ese laboratorio ya está reservado en ese horario o a menos de ${PREP_BUFFER_MINUTES} minutos de otra reserva (tiempo de preparación). Elige otro horario.`,
+      };
     }
     return null;
   }
@@ -79,21 +230,66 @@ export class BookingCreateComponent {
 
     const { resourceId, startTime, endTime } = this.form.getRawValue();
     this.bookingService.createBooking({ resourceId: resourceId as number, startTime, endTime }).subscribe({
-      next: () => {
-        this.submitting.set(false);
-        this.form.reset();
-        this.loadExisting();
-        this.created.emit();
-      },
+      next: () => this.onCreated(),
       error: (err: HttpErrorResponse) => {
+        if (err.status === 0 || err.status >= 500) {
+          this.verifyCreated(resourceId as number, startTime);
+          return;
+        }
         this.submitting.set(false);
         this.errorMessage.set(this.resolveCreateErrorMessage(err));
       },
     });
   }
 
-  private isBusy(resourceId: number, start: Date, end: Date): boolean {
-    return this.existing().some((b) => b.resourceId === resourceId && overlaps(b, start, end));
+  private conflictsWithExisting(labId: number, start: Date, end: Date): boolean {
+    const now = new Date();
+    return this.existing().some(
+      (b) =>
+        b.resourceId === labId &&
+        countsAsCupo(b, now) &&
+        start.getTime() < new Date(b.endTime).getTime() + BUFFER_MS &&
+        end.getTime() + BUFFER_MS > new Date(b.startTime).getTime()
+    );
+  }
+
+  private resetStartIfUnavailable(): void {
+    const current = this.pickStart();
+    if (!current) return;
+    const option = this.startOptions().find((o) => o.time === current);
+    if (!option || option.busy) {
+      this.pickStart.set('');
+    }
+  }
+
+  private onCreated(): void {
+    this.submitting.set(false);
+    this.form.reset();
+    this.pickDate.set('');
+    this.pickStart.set('');
+    this.loadExisting();
+    this.created.emit();
+  }
+
+  private verifyCreated(resourceId: number, startTime: string): void {
+    const startMs = new Date(startTime).getTime();
+    this.bookingService.getBookings().subscribe({
+      next: (bookings) => {
+        const created = bookings.some(
+          (b) => b.resourceId === resourceId && new Date(b.startTime).getTime() === startMs
+        );
+        if (created) {
+          this.onCreated();
+        } else {
+          this.submitting.set(false);
+          this.errorMessage.set('No se pudo crear la reserva. Intenta nuevamente.');
+        }
+      },
+      error: () => {
+        this.submitting.set(false);
+        this.errorMessage.set('No se pudo crear la reserva. Intenta nuevamente.');
+      },
+    });
   }
 
   private loadExisting(): void {
@@ -105,7 +301,7 @@ export class BookingCreateComponent {
 
   private resolveCreateErrorMessage(err: HttpErrorResponse): string {
     if (err.status === 409) {
-      return 'Ese laboratorio ya está reservado en el horario seleccionado. Elegí otra fecha u horario.';
+      return 'No hay cupo disponible en ese horario. Elige otra fecha u horario.';
     }
     return 'No se pudo crear la reserva. Intenta nuevamente.';
   }

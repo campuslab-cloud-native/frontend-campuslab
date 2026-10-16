@@ -1,21 +1,66 @@
 <form [formGroup]="form" (ngSubmit)="submit()" class="card p-3 mb-3">
   <h5>Nueva reserva</h5>
-  <p class="text-muted small mb-2">Duración máxima: {{ maxHours }} horas.</p>
+
   <div class="row g-2">
     <div class="col-12 col-md-4">
       <select class="form-select" formControlName="resourceId">
         <option [ngValue]="null" disabled>Selecciona un laboratorio</option>
         @for (lab of labs(); track lab.id) {
-          <option [ngValue]="lab.id">{{ lab.name }} (cupo: {{ lab.availableQuantity }})</option>
+          <option [ngValue]="lab.id" [disabled]="cupoFor(lab) === 0">
+            {{ lab.name }} (cupo: {{ cupoFor(lab) }})
+          </option>
         }
       </select>
     </div>
-    <div class="col-12 col-md-3">
-      <input type="datetime-local" class="form-control" formControlName="startTime" />
+
+    <div class="col-12 col-md-6 position-relative">
+      <button type="button" class="form-control picker-trigger" [disabled]="!labSelected()" (click)="togglePicker()">
+        {{ slotLabel() || (labSelected() ? 'Selecciona fecha y horario' : 'Primero selecciona un laboratorio') }}
+      </button>
+
+      @if (pickerOpen()) {
+        <div class="picker-panel">
+          <label class="picker-label">Fecha</label>
+          <input
+            type="date"
+            class="form-control mb-1"
+            [min]="today"
+            [value]="pickDate()"
+            (input)="onPickDate($any($event.target).value)"
+          />
+          @if (pickDateError()) {
+            <div class="text-danger small mb-1">Elige hoy o una fecha futura.</div>
+          }
+
+          <label class="picker-label mt-2">Hora de inicio</label>
+          <select class="form-select mb-2" (change)="pickStart.set($any($event.target).value)">
+            <option value="" disabled [selected]="!pickStart()">Elige la hora</option>
+            @for (option of startOptions(); track option.time) {
+              <option [value]="option.time" [disabled]="option.busy" [selected]="option.time === pickStart()">
+                {{ option.time }}{{ option.busy ? ' · ocupado' : '' }}
+              </option>
+            }
+          </select>
+
+          <label class="picker-label">Duración</label>
+          <select class="form-select mb-3" (change)="onPickDuration(+$any($event.target).value)">
+            @for (duration of durations; track duration.minutes) {
+              <option [value]="duration.minutes" [selected]="duration.minutes === pickDuration()">
+                {{ duration.label }}
+              </option>
+            }
+          </select>
+
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" (click)="closePicker()">Cancelar</button>
+            <button type="button" class="btn btn-primary btn-sm" [disabled]="!canAccept()" (click)="acceptPicker()">
+              Aceptar fecha y hora
+            </button>
+          </div>
+        </div>
+      }
     </div>
-    <div class="col-12 col-md-3">
-      <input type="datetime-local" class="form-control" formControlName="endTime" />
-    </div>
+
     <div class="col-12 col-md-2">
       <button type="submit" class="btn btn-primary w-100" [disabled]="form.invalid || submitting() || !!slotIssue()">
         {{ submitting() ? 'Creando...' : 'Reservar' }}

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, interval, startWith, takeUntil } from 'rxjs';
@@ -9,25 +9,33 @@ import { BrowserNotificationService } from '../../../core/services/browser-notif
 import { AuthService } from '../../../core/auth/auth.service';
 import { AppRole } from '../../../core/models/role.model';
 import { Booking, BookingStatus } from '../../../core/models/booking.model';
-import { DisplayStatus, effectiveStatus } from '../../../core/utils/booking-time';
+import {
+  BookingAction,
+  DisplayStatus,
+  allowedActions,
+  effectiveStatus,
+  toDateKey,
+} from '../../../core/utils/booking-time';
 
 const POLL_INTERVAL_MS = 20000;
 
 const STATUS_PRIORITY: Record<BookingStatus, number> = {
   [BookingStatus.Solicitada]: 0,
   [BookingStatus.EnPreparacion]: 1,
-  [BookingStatus.Aprobada]: 2,
-  [BookingStatus.EnUso]: 3,
-  [BookingStatus.Devuelta]: 4,
-  [BookingStatus.Cancelada]: 5,
+  [BookingStatus.PreparacionLista]: 2,
+  [BookingStatus.Aprobada]: 3,
+  [BookingStatus.EnUso]: 4,
+  [BookingStatus.Devuelta]: 5,
+  [BookingStatus.Cancelada]: 6,
 };
 
 const STATUS_LABELS: Record<DisplayStatus, string> = {
   [BookingStatus.Solicitada]: 'Solicitada',
   [BookingStatus.Aprobada]: 'Aprobada',
   [BookingStatus.EnPreparacion]: 'En preparación',
+  [BookingStatus.PreparacionLista]: 'Preparación lista',
   [BookingStatus.EnUso]: 'En uso',
-  [BookingStatus.Devuelta]: 'Devuelta',
+  [BookingStatus.Devuelta]: 'Terminada',
   [BookingStatus.Cancelada]: 'Cancelada',
   FINISHED: 'Terminada',
 };
@@ -46,20 +54,44 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly destroy$ = new Subject<void>();
   private previousStatuses = new Map<number, BookingStatus>();
+  private successTimer?: ReturnType<typeof setTimeout>;
 
-  readonly BookingStatus = BookingStatus;
-  readonly statuses = Object.values(BookingStatus);
-  readonly actions = [
-    { label: 'Aprobar', status: BookingStatus.Aprobada },
-    { label: 'Rechazar', status: BookingStatus.Cancelada },
-    { label: 'Preparar', status: BookingStatus.EnPreparacion },
-    { label: 'En uso', status: BookingStatus.EnUso },
-    { label: 'Completar', status: BookingStatus.Devuelta },
+  readonly filterOptions: DisplayStatus[] = [
+    BookingStatus.Solicitada,
+    BookingStatus.Aprobada,
+    BookingStatus.EnPreparacion,
+    BookingStatus.PreparacionLista,
+    BookingStatus.EnUso,
+    'FINISHED',
+    BookingStatus.Cancelada,
   ];
 
   bookings = signal<Booking[]>([]);
   resourceNames = signal<Map<number, string>>(new Map());
-  statusFilter: BookingStatus | '' = '';
+  statusFilter = signal<DisplayStatus | ''>('');
+  finishedDay = signal<string>(toDateKey(new Date()));
+  actionError = signal<string | null>(null);
+  actionSuccess = signal<string | null>(null);
+
+  visibleBookings = computed(() => {
+    const filter = this.statusFilter();
+    const now = new Date();
+    return this.bookings().filter((booking) => {
+      const status = effectiveStatus(booking, now);
+      return filter ? status === filter : status !== 'FINISHED';
+    });
+  });
+
+  finishedOfDay = computed(() => {
+    const day = this.finishedDay();
+    const now = new Date();
+    return this.bookings()
+      .filter(
+        (booking) =>
+          effectiveStatus(booking, now) === 'FINISHED' && toDateKey(new Date(booking.endTime)) === day
+      )
+      .sort((a, b) => new Date(b.endTime).getTime() - new Date(a.endTime).getTime());
+  });
 
   get canManage(): boolean {
     return this.auth.hasAnyRole(AppRole.Admin, AppRole.Operator);
@@ -69,12 +101,16 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
     return this.auth.hasAnyRole(AppRole.Client, AppRole.Operator, AppRole.Admin);
   }
 
-  statusLabel(status: BookingStatus): string {
+  statusLabel(status: DisplayStatus): string {
     return STATUS_LABELS[status];
   }
 
   displayStatusLabel(booking: Booking): string {
     return STATUS_LABELS[effectiveStatus(booking)];
+  }
+
+  actionsFor(booking: Booking): BookingAction[] {
+    return allowedActions(booking);
   }
 
   ngOnInit(): void {
@@ -92,12 +128,13 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    clearTimeout(this.successTimer);
     this.destroy$.next();
     this.destroy$.complete();
   }
 
   load(): void {
-    this.bookingService.getBookings({ status: this.statusFilter || undefined }).subscribe((bookings) => {
+    this.bookingService.getBookings().subscribe((bookings) => {
       const sorted = this.canManage
         ? [...bookings].sort((a, b) => STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status])
         : bookings;
@@ -136,7 +173,24 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   }
 
   changeStatus(booking: Booking, status: BookingStatus): void {
-    this.bookingService.updateStatus(booking.id, status).subscribe(() => this.load());
+    this.actionSuccess.set(null);
+    this.bookingService.updateStatus(booking.id, status).subscribe({
+      next: () => {
+        this.actionError.set(null);
+        this.showSuccess(`Acción actualizada con éxito (reserva #${booking.id}).`);
+        this.load();
+      },
+      error: () =>
+        this.actionError.set(
+          'No se pudo cambiar el estado de la reserva. Revisa que la acción corresponda a su estado actual.'
+        ),
+    });
+  }
+
+  private showSuccess(message: string): void {
+    this.actionSuccess.set(message);
+    clearTimeout(this.successTimer);
+    this.successTimer = setTimeout(() => this.actionSuccess.set(null), 4000);
   }
 
   onBookingCreated(): void {

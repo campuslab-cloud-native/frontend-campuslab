@@ -1,24 +1,49 @@
 <div class="container mt-4">
   <h2 class="page-title">Ocupación y reportes</h2>
 
+  <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <span class="period-label">Sacar reporte:</span>
+    @for (option of periods; track option.value) {
+      <button
+        type="button"
+        class="period-btn"
+        [class.active]="period() === option.value"
+        (click)="selectPeriod(option.value)"
+      >
+        {{ option.label }}
+      </button>
+    }
+  </div>
+
+  @if (error()) {
+    <div class="alert alert-danger">No se pudo generar el reporte. Intenta nuevamente.</div>
+  }
+
+  @if (loading()) {
+    <p class="text-muted">Generando reporte...</p>
+  }
+
   @if (kpis(); as k) {
+    <p class="text-muted small mb-2">
+      Reporte {{ current().title }} · generado el {{ generatedAt() | date: 'short' }}
+    </p>
     <div class="row g-3 mb-4">
-      <div class="col-6 col-md-3"><div class="card text-center p-3 h-100"><div class="fs-3">{{ k.totalBookings }}</div><div class="text-muted">Reservas (24h)</div></div></div>
+      <div class="col-6 col-md-3"><div class="card text-center p-3 h-100"><div class="fs-3">{{ k.totalBookings }}</div><div class="text-muted">Reservas ({{ current().short }})</div></div></div>
       <div class="col-6 col-md-3"><div class="card text-center p-3 h-100"><div class="fs-3">{{ k.bookingsPerHour | number: '1.1-1' }}</div><div class="text-muted">Reservas / hora</div></div></div>
       <div class="col-6 col-md-3"><div class="card text-center p-3 h-100"><div class="fs-3">{{ k.averageCycleTimeMinutes | number: '1.0-0' }}</div><div class="text-muted">Min. promedio de ciclo</div></div></div>
       <div class="col-6 col-md-3"><div class="card text-center p-3 h-100"><div class="fs-3">{{ k.occupiedResources }}</div><div class="text-muted">Recursos ocupados</div></div></div>
     </div>
-  }
 
-  <h5>Más utilizados (7 días)</h5>
-  <table class="table table-sm table-stack">
-    <thead><tr><th>Recurso</th><th>Reservas</th></tr></thead>
-    <tbody>
-      @for (resource of topResources(); track resource.resourceId) {
-        <tr><td data-label="Recurso">{{ resource.resourceName }}</td><td data-label="Reservas">{{ resource.totalBookings }}</td></tr>
-      } @empty {
-        <tr><td colspan="2" class="text-center text-muted">Sin datos todavía.</td></tr>
-      }
-    </tbody>
-  </table>
+    <h5>Más utilizados ({{ current().short }})</h5>
+    <table class="table table-sm table-stack">
+      <thead><tr><th>Recurso</th><th>Reservas</th></tr></thead>
+      <tbody>
+        @for (resource of topResources(); track resource.resourceId) {
+          <tr><td data-label="Recurso">{{ resource.resourceName }}</td><td data-label="Reservas">{{ resource.totalBookings }}</td></tr>
+        } @empty {
+          <tr><td colspan="2" class="text-center text-muted">Sin datos para este período.</td></tr>
+        }
+      </tbody>
+    </table>
+  }
 </div>

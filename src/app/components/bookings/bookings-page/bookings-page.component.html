@@ -6,12 +6,21 @@
     <hr />
   }
 
+  @if (actionError()) {
+    <div class="alert alert-danger">{{ actionError() }}</div>
+  }
+
+
+  @if (actionSuccess()) {
+    <div class="alert alert-success action-toast">{{ actionSuccess() }}</div>
+  }
+
   <div class="d-flex flex-wrap align-items-center mb-3 gap-2">
     <label class="form-label mb-0">Filtrar por estado:</label>
-    <select class="form-select w-auto" [(ngModel)]="statusFilter" (ngModelChange)="load()">
-      <option value="">Todos</option>
-      @for (status of statuses; track status) {
-        <option [value]="status">{{ statusLabel(status) }}</option>
+    <select class="form-select w-auto" [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)">
+      <option value="">Todos (activas)</option>
+      @for (option of filterOptions; track option) {
+        <option [value]="option">{{ statusLabel(option) }}</option>
       }
     </select>
   </div>
@@ -28,7 +37,7 @@
       </tr>
     </thead>
     <tbody>
-      @for (booking of bookings(); track booking.id) {
+      @for (booking of visibleBookings(); track booking.id) {
         <tr>
           <td data-label="Laboratorio">{{ resourceName(booking.resourceId) }}</td>
           @if (canManage) { <td data-label="Usuario">{{ booking.userId }}</td> }
@@ -37,17 +46,51 @@
           <td data-label="Estado">{{ displayStatusLabel(booking) }}</td>
           @if (canManage) {
             <td class="actions-cell" data-label="Acciones">
-              <select class="form-select form-select-sm action-select" (change)="onAction(booking, $any($event.target))">
-                <option value="" selected disabled>Elegir acción</option>
-                @for (action of actions; track action.status) {
-                  <option [value]="action.status">{{ action.label }}</option>
-                }
-              </select>
+              @if (actionsFor(booking).length > 0) {
+                <select class="form-select form-select-sm action-select" (change)="onAction(booking, $any($event.target))">
+                  <option value="" selected disabled>Elegir acción</option>
+                  @for (action of actionsFor(booking); track action.status) {
+                    <option [value]="action.status">{{ action.label }}</option>
+                  }
+                </select>
+              } @else {
+                <span class="text-muted">—</span>
+              }
             </td>
           }
         </tr>
       } @empty {
-        <tr><td [attr.colspan]="canManage ? 6 : 4" class="text-center text-muted">Sin reservas todavía.</td></tr>
+        <tr><td [attr.colspan]="canManage ? 6 : 4" class="text-center text-muted">Sin reservas para este filtro.</td></tr>
+      }
+    </tbody>
+  </table>
+
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
+    <h5 class="mb-0">Reservas terminadas del día</h5>
+    <input type="date" class="form-control w-auto" [ngModel]="finishedDay()" (ngModelChange)="finishedDay.set($event)" />
+  </div>
+
+  <table class="table table-striped table-stack">
+    <thead>
+      <tr>
+        <th>Laboratorio</th>
+        @if (canManage) { <th>Usuario</th> }
+        <th>Inicio</th>
+        <th>Fin</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (booking of finishedOfDay(); track booking.id) {
+        <tr>
+          <td data-label="Laboratorio">{{ resourceName(booking.resourceId) }}</td>
+          @if (canManage) { <td data-label="Usuario">{{ booking.userId }}</td> }
+          <td data-label="Inicio">{{ booking.startTime | date: 'short' }}</td>
+          <td data-label="Fin">{{ booking.endTime | date: 'short' }}</td>
+          <td data-label="Estado">{{ displayStatusLabel(booking) }}</td>
+        </tr>
+      } @empty {
+        <tr><td [attr.colspan]="canManage ? 5 : 4" class="text-center text-muted">No hay reservas terminadas en este día.</td></tr>
       }
     </tbody>
   </table>
