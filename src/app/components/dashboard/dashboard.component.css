@@ -101,3 +101,77 @@
   .widget-row { font-size: 1rem; gap: 0.75rem; flex-wrap: wrap; }
   .stat-value { font-size: 2.2rem; }
 }
+
+.my-booking {
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.my-booking:last-of-type {
+  border-bottom: none;
+}
+
+.my-booking-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.my-booking-lab {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e2530;
+}
+
+.status-chip {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  background: #9faed8;
+  color: #ffffff;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: #8a93ab;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d5dbee;
+}
+
+.steps li.done {
+  color: #55607a;
+}
+
+.steps li.done .step-dot {
+  background: #9faed8;
+}
+
+.steps li.current {
+  color: #1e2530;
+  font-weight: 700;
+}
+
+.steps li.current .step-dot {
+  background: #6b7dbd;
+  box-shadow: 0 0 0 4px rgba(107, 125, 189, 0.25);
+}

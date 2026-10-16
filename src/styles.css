@@ -101,4 +101,13 @@ body {
   .table-stack tbody td[colspan]::before {
     display: none;
   }
+
+  .solid-field {
+  background-color: #ffffff !important;
+  border: 1px solid #c9d1ec !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+
 }

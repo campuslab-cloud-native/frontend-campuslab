@@ -14,6 +14,27 @@ export interface BookingAction {
   status: BookingStatus;
 }
 
+export const STATUS_LABELS: Record<DisplayStatus, string> = {
+  [BookingStatus.Solicitada]: 'Solicitada',
+  [BookingStatus.Aprobada]: 'Aprobada',
+  [BookingStatus.EnPreparacion]: 'En preparación',
+  [BookingStatus.PreparacionLista]: 'Preparación lista',
+  [BookingStatus.EnUso]: 'En uso',
+  [BookingStatus.Terminada]: 'Terminada',
+  [BookingStatus.Devuelta]: 'Terminada',
+  [BookingStatus.Cancelada]: 'Cancelada',
+  FINISHED: 'Terminada',
+};
+
+export const BOOKING_STEPS: { status: DisplayStatus; label: string }[] = [
+  { status: BookingStatus.Solicitada, label: 'Solicitada' },
+  { status: BookingStatus.Aprobada, label: 'Aprobada' },
+  { status: BookingStatus.EnPreparacion, label: 'En preparación' },
+  { status: BookingStatus.PreparacionLista, label: 'Preparación lista' },
+  { status: BookingStatus.EnUso, label: 'En uso' },
+  { status: 'FINISHED', label: 'Terminada' },
+];
+
 const ACTIVE_STATUSES: BookingStatus[] = [
   BookingStatus.Solicitada,
   BookingStatus.Aprobada,
@@ -39,16 +60,18 @@ export function toLocalInput(date: Date): string {
   return `${toDateKey(date)}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+export function stepIndex(status: DisplayStatus): number {
+  const index = BOOKING_STEPS.findIndex((step) => step.status === status);
+  return index < 0 ? 0 : index;
+}
+
 export function effectiveStatus(booking: Booking, now: Date = new Date()): DisplayStatus {
-  if (booking.status === BookingStatus.Devuelta) return 'FINISHED';
-  if (!RUNNING_STATUSES.includes(booking.status)) return booking.status;
-
-  const start = new Date(booking.startTime).getTime();
-  const end = new Date(booking.endTime).getTime();
-  const current = now.getTime();
-
-  if (current >= end) return 'FINISHED';
-  if (booking.status === BookingStatus.Aprobada && current >= start) return BookingStatus.EnUso;
+  if (booking.status === BookingStatus.Terminada || booking.status === BookingStatus.Devuelta) {
+    return 'FINISHED';
+  }
+  if (RUNNING_STATUSES.includes(booking.status) && now.getTime() >= new Date(booking.endTime).getTime()) {
+    return 'FINISHED';
+  }
   return booking.status;
 }
 
@@ -58,6 +81,7 @@ export function countsAsCupo(booking: Booking, now: Date = new Date()): boolean 
 
 export function allowedActions(booking: Booking, now: Date = new Date()): BookingAction[] {
   if (effectiveStatus(booking, now) === 'FINISHED') return [];
+  if (now.getTime() >= new Date(booking.startTime).getTime()) return [];
 
   switch (booking.status) {
     case BookingStatus.Solicitada:
@@ -66,19 +90,9 @@ export function allowedActions(booking: Booking, now: Date = new Date()): Bookin
         { label: 'Rechazar', status: BookingStatus.Cancelada },
       ];
     case BookingStatus.Aprobada:
-      return [
-        { label: 'Preparar laboratorio', status: BookingStatus.EnPreparacion },
-        { label: 'Cancelar', status: BookingStatus.Cancelada },
-      ];
     case BookingStatus.EnPreparacion:
-      return [{ label: 'Cancelar', status: BookingStatus.Cancelada }];
     case BookingStatus.PreparacionLista:
-      return [
-        { label: 'Iniciar uso', status: BookingStatus.EnUso },
-        { label: 'Cancelar', status: BookingStatus.Cancelada },
-      ];
-    case BookingStatus.EnUso:
-      return [{ label: 'Terminar', status: BookingStatus.Devuelta }];
+      return [{ label: 'Cancelar', status: BookingStatus.Cancelada }];
     default:
       return [];
   }

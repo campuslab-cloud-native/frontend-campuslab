@@ -62,11 +62,15 @@
     </div>
 
     <div class="col-12 col-md-2">
-      <button type="submit" class="btn btn-primary w-100" [disabled]="form.invalid || submitting() || !!slotIssue()">
+      <button type="submit" class="btn btn-primary w-100" [disabled]="form.invalid || submitting() || !!slotIssue() || !!cupoIssue()">
         {{ submitting() ? 'Creando...' : 'Reservar' }}
       </button>
     </div>
   </div>
+
+  @if (cupoIssue(); as cupo) {
+    <div class="alert alert-warning mt-2 mb-0">{{ cupo.message }}</div>
+  }
 
   @if (slotIssue(); as issue) {
     <div class="alert alert-warning mt-2 mb-0">{{ issue.message }}</div>

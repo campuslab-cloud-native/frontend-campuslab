@@ -1,11 +1,14 @@
-import { Component, EventEmitter, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Subject, interval, takeUntil } from 'rxjs';
 import { CatalogService } from '../../../core/services/catalog.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { CatalogResource, ResourceType } from '../../../core/models/resource.model';
 import { Booking } from '../../../core/models/booking.model';
+import { AuthService } from '../../../core/auth/auth.service';
+import { rememberMyBooking } from '../../../core/utils/my-bookings';
 import {
   MAX_BOOKING_HOURS,
   MAX_BOOKING_MS,
@@ -28,6 +31,7 @@ const FIRST_START_HOUR = 8;
 const LAST_START_HOUR = 20;
 const START_STEP_MINUTES = 30;
 const BUFFER_MS = PREP_BUFFER_MINUTES * 60000;
+const REFRESH_MS = 15000;
 
 const DURATIONS = [
   { minutes: 30, label: '30 minutos' },
@@ -45,12 +49,14 @@ const pad = (n: number): string => String(n).padStart(2, '0');
   templateUrl: './booking-create.component.html',
   styleUrl: './booking-create.component.css'
 })
-export class BookingCreateComponent {
+export class BookingCreateComponent implements OnDestroy {
   @Output() created = new EventEmitter<void>();
 
   private readonly fb = inject(FormBuilder);
   private readonly catalogService = inject(CatalogService);
   private readonly bookingService = inject(BookingService);
+  private readonly auth = inject(AuthService);
+  private readonly destroy$ = new Subject<void>();
 
   readonly maxHours = MAX_BOOKING_HOURS;
   readonly durations = DURATIONS;
@@ -74,35 +80,39 @@ export class BookingCreateComponent {
   });
 
   constructor() {
-    this.catalogService.getResources().subscribe({
-      next: (resources) =>
-        this.labs.set(resources.filter((r) => r.type === ResourceType.Lab && r.availableQuantity > 0)),
-      error: () => {},
-    });
+    this.loadLabs();
     this.loadExisting();
+    interval(REFRESH_MS)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.loadLabs();
+        this.loadExisting();
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   labSelected(): boolean {
     return this.form.getRawValue().resourceId !== null;
   }
 
-  selectedDay(): string | null {
-    const { startTime } = this.form.getRawValue();
-    return startTime ? startTime.slice(0, 10) : null;
+  cupoFor(lab: CatalogResource): number {
+    return Math.max(0, lab.availableQuantity);
   }
 
-  cupoFor(lab: CatalogResource): number {
-    const day = this.selectedDay();
-    if (!day) return lab.availableQuantity;
-
-    const now = new Date();
-    const used = this.existing().filter(
-      (b) =>
-        b.resourceId === lab.id &&
-        countsAsCupo(b, now) &&
-        toDateKey(new Date(b.startTime)) === day
-    ).length;
-    return Math.max(0, lab.availableQuantity - used);
+  cupoIssue(): SlotIssue | null {
+    const labs = this.labs();
+    if (labs.length > 0 && labs.every((lab) => this.cupoFor(lab) === 0)) {
+      return { message: 'No hay cupos disponibles en este momento.' };
+    }
+    const selected = labs.find((lab) => lab.id === this.form.getRawValue().resourceId);
+    if (selected && this.cupoFor(selected) === 0) {
+      return { message: 'No hay cupos disponibles en este laboratorio. Elige otro laboratorio.' };
+    }
+    return null;
   }
 
   slotLabel(): string {
@@ -207,14 +217,6 @@ export class BookingCreateComponent {
       return { message: `Una reserva no puede durar más de ${MAX_BOOKING_HOURS} horas.` };
     }
 
-    const labs = this.labs();
-    if (labs.length > 0 && labs.every((lab) => this.cupoFor(lab) === 0)) {
-      return { message: 'No hay cupos disponibles para ese día. Elige otra fecha.' };
-    }
-    const selected = labs.find((lab) => lab.id === resourceId);
-    if (selected && this.cupoFor(selected) === 0) {
-      return { message: 'No hay cupos disponibles en este laboratorio para ese día. Elige otra fecha u otro laboratorio.' };
-    }
     if (resourceId !== null && this.conflictsWithExisting(resourceId, start, end)) {
       return {
         message: `Ese laboratorio ya está reservado en ese horario o a menos de ${PREP_BUFFER_MINUTES} minutos de otra reserva (tiempo de preparación). Elige otro horario.`,
@@ -224,13 +226,16 @@ export class BookingCreateComponent {
   }
 
   submit(): void {
-    if (this.form.invalid || this.slotIssue()) return;
+    if (this.form.invalid || this.slotIssue() || this.cupoIssue()) return;
     this.submitting.set(true);
     this.errorMessage.set(null);
 
     const { resourceId, startTime, endTime } = this.form.getRawValue();
     this.bookingService.createBooking({ resourceId: resourceId as number, startTime, endTime }).subscribe({
-      next: () => this.onCreated(),
+      next: (booking) => {
+        rememberMyBooking(this.auth.userKey, booking.id);
+        this.onCreated();
+      },
       error: (err: HttpErrorResponse) => {
         if (err.status === 0 || err.status >= 500) {
           this.verifyCreated(resourceId as number, startTime);
@@ -267,6 +272,7 @@ export class BookingCreateComponent {
     this.form.reset();
     this.pickDate.set('');
     this.pickStart.set('');
+    this.loadLabs();
     this.loadExisting();
     this.created.emit();
   }
@@ -275,10 +281,11 @@ export class BookingCreateComponent {
     const startMs = new Date(startTime).getTime();
     this.bookingService.getBookings().subscribe({
       next: (bookings) => {
-        const created = bookings.some(
-          (b) => b.resourceId === resourceId && new Date(b.startTime).getTime() === startMs
-        );
-        if (created) {
+        const match = bookings
+          .filter((b) => b.resourceId === resourceId && new Date(b.startTime).getTime() === startMs)
+          .sort((a, b) => b.id - a.id)[0];
+        if (match) {
+          rememberMyBooking(this.auth.userKey, match.id);
           this.onCreated();
         } else {
           this.submitting.set(false);
@@ -292,6 +299,13 @@ export class BookingCreateComponent {
     });
   }
 
+  private loadLabs(): void {
+    this.catalogService.getResources().subscribe({
+      next: (resources) => this.labs.set(resources.filter((r) => r.type === ResourceType.Lab)),
+      error: () => {},
+    });
+  }
+
   private loadExisting(): void {
     this.bookingService.getBookings().subscribe({
       next: (bookings) => this.existing.set(bookings),
@@ -301,7 +315,7 @@ export class BookingCreateComponent {
 
   private resolveCreateErrorMessage(err: HttpErrorResponse): string {
     if (err.status === 409) {
-      return 'No hay cupo disponible en ese horario. Elige otra fecha u horario.';
+      return 'No se pudo reservar: ya no hay cupo o el horario está ocupado. Elige otra fecha u horario.';
     }
     return 'No se pudo crear la reserva. Intenta nuevamente.';
   }

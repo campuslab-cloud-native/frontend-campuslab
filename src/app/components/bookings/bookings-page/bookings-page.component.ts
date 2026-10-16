@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Subject, interval, startWith, takeUntil } from 'rxjs';
 import { BookingCreateComponent } from '../booking-create/booking-create.component';
@@ -12,10 +13,12 @@ import { Booking, BookingStatus } from '../../../core/models/booking.model';
 import {
   BookingAction,
   DisplayStatus,
+  STATUS_LABELS,
   allowedActions,
   effectiveStatus,
   toDateKey,
 } from '../../../core/utils/booking-time';
+import { readMyBookingIds } from '../../../core/utils/my-bookings';
 
 const POLL_INTERVAL_MS = 20000;
 
@@ -25,19 +28,9 @@ const STATUS_PRIORITY: Record<BookingStatus, number> = {
   [BookingStatus.PreparacionLista]: 2,
   [BookingStatus.Aprobada]: 3,
   [BookingStatus.EnUso]: 4,
-  [BookingStatus.Devuelta]: 5,
-  [BookingStatus.Cancelada]: 6,
-};
-
-const STATUS_LABELS: Record<DisplayStatus, string> = {
-  [BookingStatus.Solicitada]: 'Solicitada',
-  [BookingStatus.Aprobada]: 'Aprobada',
-  [BookingStatus.EnPreparacion]: 'En preparación',
-  [BookingStatus.PreparacionLista]: 'Preparación lista',
-  [BookingStatus.EnUso]: 'En uso',
-  [BookingStatus.Devuelta]: 'Terminada',
-  [BookingStatus.Cancelada]: 'Cancelada',
-  FINISHED: 'Terminada',
+  [BookingStatus.Terminada]: 5,
+  [BookingStatus.Devuelta]: 6,
+  [BookingStatus.Cancelada]: 7,
 };
 
 @Component({
@@ -68,6 +61,7 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
 
   bookings = signal<Booking[]>([]);
   resourceNames = signal<Map<number, string>>(new Map());
+  myIds = signal<Set<number>>(new Set());
   statusFilter = signal<DisplayStatus | ''>('');
   finishedDay = signal<string>(toDateKey(new Date()));
   actionError = signal<string | null>(null);
@@ -76,7 +70,7 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   visibleBookings = computed(() => {
     const filter = this.statusFilter();
     const now = new Date();
-    return this.bookings().filter((booking) => {
+    return this.scoped(this.bookings()).filter((booking) => {
       const status = effectiveStatus(booking, now);
       return filter ? status === filter : status !== 'FINISHED';
     });
@@ -85,7 +79,7 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   finishedOfDay = computed(() => {
     const day = this.finishedDay();
     const now = new Date();
-    return this.bookings()
+    return this.scoped(this.bookings())
       .filter(
         (booking) =>
           effectiveStatus(booking, now) === 'FINISHED' && toDateKey(new Date(booking.endTime)) === day
@@ -97,8 +91,16 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
     return this.auth.hasAnyRole(AppRole.Admin, AppRole.Operator);
   }
 
+  get isStudent(): boolean {
+    return this.auth.hasAnyRole(AppRole.Client) && !this.canManage;
+  }
+
   get canCreate(): boolean {
     return this.auth.hasAnyRole(AppRole.Client, AppRole.Operator, AppRole.Admin);
+  }
+
+  get columnCount(): number {
+    return this.canManage ? 6 : 4;
   }
 
   statusLabel(status: DisplayStatus): string {
@@ -114,6 +116,8 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.refreshMine();
+
     if (!this.canManage) {
       this.browserNotify.requestPermission();
     }
@@ -144,6 +148,14 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
       }
       this.bookings.set(sorted);
     });
+  }
+
+  private scoped(bookings: Booking[]): Booking[] {
+    return this.isStudent ? bookings.filter((b) => this.myIds().has(b.id)) : bookings;
+  }
+
+  private refreshMine(): void {
+    this.myIds.set(readMyBookingIds(this.auth.userKey));
   }
 
   private notifyStatusChanges(bookings: Booking[]): void {
@@ -180,9 +192,11 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
         this.showSuccess(`Acción actualizada con éxito (reserva #${booking.id}).`);
         this.load();
       },
-      error: () =>
+      error: (err: HttpErrorResponse) =>
         this.actionError.set(
-          'No se pudo cambiar el estado de la reserva. Revisa que la acción corresponda a su estado actual.'
+          err.status === 403
+            ? 'Tu cuenta no tiene permiso para realizar esta acción sobre la reserva.'
+            : 'No se pudo cambiar el estado de la reserva. Revisa que la acción corresponda a su estado actual.'
         ),
     });
   }
@@ -194,6 +208,8 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   }
 
   onBookingCreated(): void {
+    this.refreshMine();
+    this.showSuccess('Reserva realizada con éxito.');
     this.load();
   }
 }

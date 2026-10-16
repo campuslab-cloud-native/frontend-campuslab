@@ -4,6 +4,7 @@ export enum BookingStatus {
   EnPreparacion = 'IN_PREPARATION',
   PreparacionLista = 'READY',
   EnUso = 'IN_USE',
+  Terminada = 'TERMINATED',
   Devuelta = 'RETURNED',
   Cancelada = 'CANCELLED'
 }

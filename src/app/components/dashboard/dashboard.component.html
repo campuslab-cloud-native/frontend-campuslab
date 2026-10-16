@@ -54,16 +54,31 @@
 
     @if (isClient) {
       <div class="card p-4 widget-card">
-        <h5 class="mb-3">Tus próximas reservas</h5>
-        @for (booking of myBookings(); track booking.id) {
-          <div class="widget-row">
-            <span>{{ booking.startTime | date: 'short' }}</span>
-            <span class="text-muted">{{ booking.status }}</span>
+        <h5 class="mb-3">Mi reserva</h5>
+        @for (item of myBookings(); track item.booking.id) {
+          <div class="my-booking">
+            <div class="my-booking-head">
+              <div>
+                <div class="my-booking-lab">{{ item.labName }}</div>
+                <div class="text-muted">
+                  {{ item.booking.startTime | date: 'short' }} – {{ item.booking.endTime | date: 'shortTime' }}
+                </div>
+              </div>
+              <span class="status-chip">{{ item.statusLabel }}</span>
+            </div>
+            <ol class="steps">
+              @for (step of steps; track step.label; let i = $index) {
+                <li [class.done]="i < item.step" [class.current]="i === item.step">
+                  <span class="step-dot"></span>
+                  <span class="step-label">{{ step.label }}</span>
+                </li>
+              }
+            </ol>
           </div>
         } @empty {
-          <p class="text-muted mb-0">Todavía no tienes reservas.</p>
+          <p class="text-muted mb-0">No tienes reservas activas.</p>
         }
-        <a routerLink="/bookings" class="widget-link">Ver mis reservas →</a>
+        <a routerLink="/bookings" class="widget-link">Reservar o ver mis reservas →</a>
       </div>
     }
 

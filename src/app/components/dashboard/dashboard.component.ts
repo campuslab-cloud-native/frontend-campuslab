@@ -1,13 +1,25 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { Subject, interval, startWith, takeUntil } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { AppRole } from '../../core/models/role.model';
 import { BookingService } from '../../core/services/booking.service';
+import { CatalogService } from '../../core/services/catalog.service';
 import { ReportService, Kpis } from '../../core/services/report.service';
 import { AuditService, AuditEvent } from '../../core/services/audit.service';
 import { Booking, BookingStatus } from '../../core/models/booking.model';
-import { effectiveStatus } from '../../core/utils/booking-time';
+import { BOOKING_STEPS, STATUS_LABELS, effectiveStatus, stepIndex } from '../../core/utils/booking-time';
+import { readMyBookingIds } from '../../core/utils/my-bookings';
+
+const MY_BOOKINGS_POLL_MS = 15000;
+
+interface MyBookingView {
+  booking: Booking;
+  labName: string;
+  statusLabel: string;
+  step: number;
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -16,22 +28,26 @@ import { effectiveStatus } from '../../core/utils/booking-time';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly bookingService = inject(BookingService);
+  private readonly catalogService = inject(CatalogService);
   private readonly reportService = inject(ReportService);
   private readonly auditService = inject(AuditService);
+  private readonly destroy$ = new Subject<void>();
+  private resourceNames = new Map<number, string>();
 
   readonly isAdmin = this.auth.hasAnyRole(AppRole.Admin);
   readonly isOperator = this.auth.hasAnyRole(AppRole.Operator);
   readonly isClient = this.auth.hasAnyRole(AppRole.Client);
   readonly isAuditor = this.auth.hasAnyRole(AppRole.Auditor);
+  readonly steps = BOOKING_STEPS;
 
   kpis = signal<Kpis | null>(null);
   kpisError = signal(false);
   kpisFromBookings = signal(false);
   pendingBookings = signal<Booking[]>([]);
-  myBookings = signal<Booking[]>([]);
+  myBookings = signal<MyBookingView[]>([]);
   recentEvents = signal<AuditEvent[]>([]);
 
   ngOnInit(): void {
@@ -44,11 +60,48 @@ export class DashboardComponent implements OnInit {
         .subscribe((bookings) => this.pendingBookings.set(bookings.slice(0, 5)));
     }
     if (this.isClient) {
-      this.bookingService.getBookings().subscribe((bookings) => this.myBookings.set(bookings.slice(0, 5)));
+      this.catalogService.getResources().subscribe({
+        next: (resources) => {
+          this.resourceNames = new Map(resources.map((r) => [r.id, r.name]));
+          this.loadMyBookings();
+        },
+        error: () => {},
+      });
+      interval(MY_BOOKINGS_POLL_MS)
+        .pipe(startWith(0), takeUntil(this.destroy$))
+        .subscribe(() => this.loadMyBookings());
     }
     if (this.isAuditor) {
       this.auditService.getEvents().subscribe((events) => this.recentEvents.set(events.slice(0, 5)));
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private loadMyBookings(): void {
+    const ids = readMyBookingIds(this.auth.userKey);
+    this.bookingService.getBookings().subscribe({
+      next: (bookings) => {
+        const now = new Date();
+        const views = bookings
+          .filter((booking) => ids.has(booking.id))
+          .map((booking) => ({ booking, status: effectiveStatus(booking, now) }))
+          .filter((item) => item.status !== 'FINISHED' && item.status !== BookingStatus.Cancelada)
+          .sort((a, b) => new Date(a.booking.startTime).getTime() - new Date(b.booking.startTime).getTime())
+          .slice(0, 3)
+          .map((item) => ({
+            booking: item.booking,
+            labName: this.resourceNames.get(item.booking.resourceId) ?? `Laboratorio #${item.booking.resourceId}`,
+            statusLabel: STATUS_LABELS[item.status],
+            step: stepIndex(item.status),
+          }));
+        this.myBookings.set(views);
+      },
+      error: () => {},
+    });
   }
 
   private loadKpis(): void {

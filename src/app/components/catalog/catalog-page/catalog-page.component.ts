@@ -1,10 +1,13 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Subject, interval, startWith, takeUntil } from 'rxjs';
 import { CatalogService } from '../../../core/services/catalog.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { AppRole } from '../../../core/models/role.model';
 import { CatalogResource, ResourceType } from '../../../core/models/resource.model';
+
+const POLL_INTERVAL_MS = 10000;
 
 const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   [ResourceType.Lab]: 'Laboratorio',
@@ -19,10 +22,11 @@ const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   templateUrl: './catalog-page.component.html',
   styleUrl: './catalog-page.component.css'
 })
-export class CatalogPageComponent {
+export class CatalogPageComponent implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly catalogService = inject(CatalogService);
   private readonly auth = inject(AuthService);
+  private readonly destroy$ = new Subject<void>();
 
   readonly resourceTypes = Object.values(ResourceType);
 
@@ -40,7 +44,14 @@ export class CatalogPageComponent {
   });
 
   constructor() {
-    this.load();
+    interval(POLL_INTERVAL_MS)
+      .pipe(startWith(0), takeUntil(this.destroy$))
+      .subscribe(() => this.load());
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   resourceTypeLabel(type: ResourceType): string {
