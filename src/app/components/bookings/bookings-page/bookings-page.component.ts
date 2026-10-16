@@ -9,6 +9,7 @@ import { BrowserNotificationService } from '../../../core/services/browser-notif
 import { AuthService } from '../../../core/auth/auth.service';
 import { AppRole } from '../../../core/models/role.model';
 import { Booking, BookingStatus } from '../../../core/models/booking.model';
+import { DisplayStatus, effectiveStatus } from '../../../core/utils/booking-time';
 
 const POLL_INTERVAL_MS = 20000;
 
@@ -21,13 +22,14 @@ const STATUS_PRIORITY: Record<BookingStatus, number> = {
   [BookingStatus.Cancelada]: 5,
 };
 
-const STATUS_LABELS: Record<BookingStatus, string> = {
+const STATUS_LABELS: Record<DisplayStatus, string> = {
   [BookingStatus.Solicitada]: 'Solicitada',
   [BookingStatus.Aprobada]: 'Aprobada',
   [BookingStatus.EnPreparacion]: 'En preparación',
   [BookingStatus.EnUso]: 'En uso',
   [BookingStatus.Devuelta]: 'Devuelta',
   [BookingStatus.Cancelada]: 'Cancelada',
+  FINISHED: 'Terminada',
 };
 
 @Component({
@@ -47,6 +49,13 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
 
   readonly BookingStatus = BookingStatus;
   readonly statuses = Object.values(BookingStatus);
+  readonly actions = [
+    { label: 'Aprobar', status: BookingStatus.Aprobada },
+    { label: 'Rechazar', status: BookingStatus.Cancelada },
+    { label: 'Preparar', status: BookingStatus.EnPreparacion },
+    { label: 'En uso', status: BookingStatus.EnUso },
+    { label: 'Completar', status: BookingStatus.Devuelta },
+  ];
 
   bookings = signal<Booking[]>([]);
   resourceNames = signal<Map<number, string>>(new Map());
@@ -62,6 +71,10 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
 
   statusLabel(status: BookingStatus): string {
     return STATUS_LABELS[status];
+  }
+
+  displayStatusLabel(booking: Booking): string {
+    return STATUS_LABELS[effectiveStatus(booking)];
   }
 
   ngOnInit(): void {
@@ -112,6 +125,14 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
 
   resourceName(resourceId: number): string {
     return this.resourceNames().get(resourceId) ?? `#${resourceId}`;
+  }
+
+  onAction(booking: Booking, select: HTMLSelectElement): void {
+    const status = select.value as BookingStatus;
+    select.value = '';
+    if (status) {
+      this.changeStatus(booking, status);
+    }
   }
 
   changeStatus(booking: Booking, status: BookingStatus): void {

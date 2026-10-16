@@ -25,8 +25,13 @@
               <div class="stat"><div class="stat-value">{{ k.averageCycleTimeMinutes | number: '1.0-0' }}</div><div class="stat-label">Min. ciclo</div></div>
             </div>
           </div>
+        } @else if (kpisError()) {
+          <p class="text-muted mb-0">No se pudieron cargar los datos.</p>
         } @else {
           <p class="text-muted mb-0">Cargando datos...</p>
+        }
+        @if (kpisFromBookings()) {
+          <p class="text-muted small mt-2 mb-0">Calculado a partir de las reservas.</p>
         }
         <a routerLink="/reports" class="widget-link">Ver reportes completos →</a>
       </div>

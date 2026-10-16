@@ -7,6 +7,7 @@ import { BookingService } from '../../core/services/booking.service';
 import { ReportService, Kpis } from '../../core/services/report.service';
 import { AuditService, AuditEvent } from '../../core/services/audit.service';
 import { Booking, BookingStatus } from '../../core/models/booking.model';
+import { effectiveStatus } from '../../core/utils/booking-time';
 
 @Component({
   selector: 'app-dashboard',
@@ -27,13 +28,15 @@ export class DashboardComponent implements OnInit {
   readonly isAuditor = this.auth.hasAnyRole(AppRole.Auditor);
 
   kpis = signal<Kpis | null>(null);
+  kpisError = signal(false);
+  kpisFromBookings = signal(false);
   pendingBookings = signal<Booking[]>([]);
   myBookings = signal<Booking[]>([]);
   recentEvents = signal<AuditEvent[]>([]);
 
   ngOnInit(): void {
     if (this.isAdmin) {
-      this.reportService.getKpis('last24h').subscribe((kpis) => this.kpis.set(kpis));
+      this.loadKpis();
     }
     if (this.isOperator) {
       this.bookingService
@@ -46,5 +49,44 @@ export class DashboardComponent implements OnInit {
     if (this.isAuditor) {
       this.auditService.getEvents().subscribe((events) => this.recentEvents.set(events.slice(0, 5)));
     }
+  }
+
+  private loadKpis(): void {
+    this.reportService.getKpis('last24h').subscribe({
+      next: (kpis) => this.kpis.set(kpis),
+      error: () => this.loadKpisFromBookings(),
+    });
+  }
+
+  private loadKpisFromBookings(): void {
+    this.bookingService.getBookings().subscribe({
+      next: (bookings) => {
+        this.kpis.set(this.buildKpis(bookings));
+        this.kpisFromBookings.set(true);
+      },
+      error: () => this.kpisError.set(true),
+    });
+  }
+
+  private buildKpis(bookings: Booking[]): Kpis {
+    const now = new Date();
+    const dayAgo = now.getTime() - 24 * 60 * 60 * 1000;
+
+    const recent = bookings.filter((b) => new Date(b.createdAt || b.startTime).getTime() >= dayAgo);
+    const inUse = new Set(
+      bookings.filter((b) => effectiveStatus(b, now) === BookingStatus.EnUso).map((b) => b.resourceId)
+    );
+    const durations = bookings
+      .map((b) => (new Date(b.endTime).getTime() - new Date(b.startTime).getTime()) / 60000)
+      .filter((minutes) => Number.isFinite(minutes) && minutes > 0);
+
+    return {
+      totalBookings: recent.length,
+      bookingsPerHour: recent.length / 24,
+      averageCycleTimeMinutes: durations.length
+        ? durations.reduce((sum, minutes) => sum + minutes, 0) / durations.length
+        : 0,
+      occupiedResources: inUse.size,
+    };
   }
 }

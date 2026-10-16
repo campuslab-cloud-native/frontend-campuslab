@@ -5,6 +5,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CatalogService } from '../../../core/services/catalog.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { CatalogResource, ResourceType } from '../../../core/models/resource.model';
+import { Booking } from '../../../core/models/booking.model';
+import { MAX_BOOKING_HOURS, MAX_BOOKING_MS, overlaps } from '../../../core/utils/booking-time';
+
+interface SlotIssue {
+  message: string;
+}
 
 @Component({
   selector: 'app-booking-create',
@@ -20,7 +26,10 @@ export class BookingCreateComponent {
   private readonly catalogService = inject(CatalogService);
   private readonly bookingService = inject(BookingService);
 
+  readonly maxHours = MAX_BOOKING_HOURS;
+
   labs = signal<CatalogResource[]>([]);
+  existing = signal<Booking[]>([]);
   submitting = signal(false);
   errorMessage = signal<string | null>(null);
 
@@ -36,10 +45,35 @@ export class BookingCreateComponent {
         this.labs.set(resources.filter((r) => r.type === ResourceType.Lab && r.availableQuantity > 0)),
       error: () => {},
     });
+    this.loadExisting();
+  }
+
+  slotIssue(): SlotIssue | null {
+    const { resourceId, startTime, endTime } = this.form.getRawValue();
+    if (!startTime || !endTime) return null;
+
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (end <= start) {
+      return { message: 'La hora de fin debe ser posterior a la de inicio.' };
+    }
+    if (end.getTime() - start.getTime() > MAX_BOOKING_MS) {
+      return { message: `Una reserva no puede durar más de ${MAX_BOOKING_HOURS} horas.` };
+    }
+
+    const labs = this.labs();
+    if (labs.length > 0 && labs.every((lab) => this.isBusy(lab.id, start, end))) {
+      return { message: 'Todos los laboratorios están ocupados en ese horario. Elegí otra fecha u horario.' };
+    }
+    if (resourceId !== null && this.isBusy(resourceId, start, end)) {
+      return { message: 'Ese laboratorio ya está reservado en ese horario. Elegí otra fecha, otro horario u otro laboratorio.' };
+    }
+    return null;
   }
 
   submit(): void {
-    if (this.form.invalid) return;
+    if (this.form.invalid || this.slotIssue()) return;
     this.submitting.set(true);
     this.errorMessage.set(null);
 
@@ -48,6 +82,7 @@ export class BookingCreateComponent {
       next: () => {
         this.submitting.set(false);
         this.form.reset();
+        this.loadExisting();
         this.created.emit();
       },
       error: (err: HttpErrorResponse) => {
@@ -57,9 +92,20 @@ export class BookingCreateComponent {
     });
   }
 
+  private isBusy(resourceId: number, start: Date, end: Date): boolean {
+    return this.existing().some((b) => b.resourceId === resourceId && overlaps(b, start, end));
+  }
+
+  private loadExisting(): void {
+    this.bookingService.getBookings().subscribe({
+      next: (bookings) => this.existing.set(bookings),
+      error: () => {},
+    });
+  }
+
   private resolveCreateErrorMessage(err: HttpErrorResponse): string {
     if (err.status === 409) {
-      return 'Ese laboratorio ya está reservado en el horario seleccionado. Elige otra fecha u horario.';
+      return 'Ese laboratorio ya está reservado en el horario seleccionado. Elegí otra fecha u horario.';
     }
     return 'No se pudo crear la reserva. Intenta nuevamente.';
   }

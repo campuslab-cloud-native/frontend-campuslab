@@ -34,14 +34,15 @@
           @if (canManage) { <td data-label="Usuario">{{ booking.userId }}</td> }
           <td data-label="Inicio">{{ booking.startTime | date: 'short' }}</td>
           <td data-label="Fin">{{ booking.endTime | date: 'short' }}</td>
-          <td data-label="Estado">{{ statusLabel(booking.status) }}</td>
+          <td data-label="Estado">{{ displayStatusLabel(booking) }}</td>
           @if (canManage) {
             <td class="actions-cell" data-label="Acciones">
-              <button class="btn-action btn-action--approve" (click)="changeStatus(booking, BookingStatus.Aprobada)">Aprobar</button>
-              <button class="btn-action btn-action--reject" (click)="changeStatus(booking, BookingStatus.Cancelada)">Rechazar</button>
-              <button class="btn-action btn-action--prepare" (click)="changeStatus(booking, BookingStatus.EnPreparacion)">Preparar</button>
-              <button class="btn-action btn-action--inuse" (click)="changeStatus(booking, BookingStatus.EnUso)">En uso</button>
-              <button class="btn-action btn-action--complete" (click)="changeStatus(booking, BookingStatus.Devuelta)">Completar</button>
+              <select class="form-select form-select-sm action-select" (change)="onAction(booking, $any($event.target))">
+                <option value="" selected disabled>Elegir acción</option>
+                @for (action of actions; track action.status) {
+                  <option [value]="action.status">{{ action.label }}</option>
+                }
+              </select>
             </td>
           }
         </tr>
