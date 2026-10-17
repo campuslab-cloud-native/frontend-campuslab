@@ -61,7 +61,7 @@
               <div>
                 <div class="my-booking-lab">{{ item.labName }}</div>
                 <div class="text-muted">
-                  {{ item.booking.startTime | date: 'short' }} – {{ item.booking.endTime | date: 'shortTime' }}
+                  {{ item.kindLabel }} · {{ item.booking.startTime | date: 'short' }} – {{ item.booking.endTime | date: 'shortTime' }}
                 </div>
               </div>
               <span class="status-chip">{{ item.statusLabel }}</span>

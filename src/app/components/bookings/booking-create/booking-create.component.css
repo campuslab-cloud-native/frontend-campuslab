@@ -4,6 +4,11 @@
   z-index: 20;
 }
 
+/* Con el selector abierto, esta tarjeta debe quedar por encima de las que van debajo. */
+:host(.picker-open) {
+  z-index: 40;
+}
+
 .picker-trigger {
   text-align: left;
   cursor: pointer;

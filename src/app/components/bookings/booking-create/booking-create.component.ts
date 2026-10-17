@@ -1,4 +1,4 @@
-import { Component, EventEmitter, OnDestroy, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, OnDestroy, Output, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -26,6 +26,8 @@ interface StartOption {
   busy: boolean;
 }
 
+export type BookingKind = 'lab' | 'item';
+
 const FIRST_START_HOUR = 8;
 const LAST_START_HOUR = 20;
 const START_STEP_MINUTES = 30;
@@ -46,9 +48,11 @@ const pad = (n: number): string => String(n).padStart(2, '0');
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './booking-create.component.html',
-  styleUrl: './booking-create.component.css'
+  styleUrl: './booking-create.component.css',
+  host: { '[class.picker-open]': 'pickerOpen()' }
 })
 export class BookingCreateComponent implements OnDestroy {
+  readonly kind = input<BookingKind>('lab');
   @Output() created = new EventEmitter<void>();
 
   private readonly fb = inject(FormBuilder);
@@ -60,7 +64,7 @@ export class BookingCreateComponent implements OnDestroy {
   readonly durations = DURATIONS;
   readonly today = toDateKey(new Date());
 
-  labs = signal<CatalogResource[]>([]);
+  resources = signal<CatalogResource[]>([]);
   existing = signal<Booking[]>([]);
   submitting = signal(false);
   errorMessage = signal<string | null>(null);
@@ -71,6 +75,12 @@ export class BookingCreateComponent implements OnDestroy {
   pickDuration = signal(60);
   pickDateError = signal(false);
 
+  isItem = computed(() => this.kind() === 'item');
+
+  options = computed(() =>
+    this.resources().filter((r) => (this.isItem() ? r.type !== ResourceType.Lab : r.type === ResourceType.Lab))
+  );
+
   form = this.fb.nonNullable.group({
     resourceId: [null as number | null, Validators.required],
     startTime: ['', Validators.required],
@@ -78,14 +88,10 @@ export class BookingCreateComponent implements OnDestroy {
   });
 
   constructor() {
-    this.loadLabs();
-    this.loadExisting();
+    this.refresh();
     interval(REFRESH_MS)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.loadLabs();
-        this.loadExisting();
-      });
+      .subscribe(() => this.refresh());
   }
 
   ngOnDestroy(): void {
@@ -97,20 +103,36 @@ export class BookingCreateComponent implements OnDestroy {
     return this.form.getRawValue().resourceId !== null;
   }
 
+  typeLabel(resource: CatalogResource): string {
+    return resource.type === ResourceType.Equipment ? 'Equipo' : resource.type === ResourceType.Supply ? 'Insumo' : '';
+  }
+
   cupoFor(lab: CatalogResource): number {
     return Math.max(0, lab.availableQuantity);
   }
 
   cupoIssue(): SlotIssue | null {
-    const labs = this.labs();
-    if (labs.length > 0 && labs.every((lab) => this.cupoFor(lab) === 0)) {
-      return { message: 'No hay cupos disponibles en este momento.' };
+    const options = this.options();
+    if (options.length > 0 && options.every((lab) => this.cupoFor(lab) === 0)) {
+      return {
+        message: this.isItem()
+          ? 'No hay insumos ni equipos con cupo disponible en este momento.'
+          : 'No hay cupos disponibles en este momento.',
+      };
     }
-    const selected = labs.find((lab) => lab.id === this.form.getRawValue().resourceId);
+    const selected = options.find((lab) => lab.id === this.form.getRawValue().resourceId);
     if (selected && this.cupoFor(selected) === 0) {
-      return { message: 'No hay cupos disponibles en este laboratorio. Elige otro laboratorio.' };
+      return {
+        message: this.isItem()
+          ? 'No hay cupo disponible de este recurso. Elige otro insumo o equipo.'
+          : 'No hay cupos disponibles en este laboratorio. Elige otro laboratorio.',
+      };
     }
     return null;
+  }
+
+  blocked(): boolean {
+    return !!this.cupoIssue() || !!this.slotIssue();
   }
 
   slotLabel(): string {
@@ -224,7 +246,7 @@ export class BookingCreateComponent implements OnDestroy {
   }
 
   submit(): void {
-    if (this.form.invalid || this.slotIssue() || this.cupoIssue()) return;
+    if (this.form.invalid || this.blocked()) return;
     this.submitting.set(true);
     this.errorMessage.set(null);
 
@@ -243,6 +265,8 @@ export class BookingCreateComponent implements OnDestroy {
   }
 
   private conflictsWithExisting(labId: number, start: Date, end: Date): boolean {
+    // Insumos y equipos se controlan solo por cupo: varias personas pueden pedir el mismo recurso a la misma hora.
+    if (this.isItem()) return false;
     const now = new Date();
     return this.existing().some(
       (b) =>
@@ -267,8 +291,7 @@ export class BookingCreateComponent implements OnDestroy {
     this.form.reset();
     this.pickDate.set('');
     this.pickStart.set('');
-    this.loadLabs();
-    this.loadExisting();
+    this.refresh();
     this.created.emit();
   }
 
@@ -293,18 +316,17 @@ export class BookingCreateComponent implements OnDestroy {
     });
   }
 
-  private loadLabs(): void {
+  private refresh(): void {
     this.catalogService.getResources().subscribe({
-      next: (resources) => this.labs.set(resources.filter((r) => r.type === ResourceType.Lab)),
+      next: (resources) => this.resources.set(resources),
       error: () => {},
     });
-  }
-
-  private loadExisting(): void {
-    this.bookingService.getAccessibleBookings().subscribe({
-      next: (bookings) => this.existing.set(bookings),
-      error: () => {},
-    });
+    if (!this.isItem()) {
+      this.bookingService.getAccessibleBookings().subscribe({
+        next: (bookings) => this.existing.set(bookings),
+        error: () => {},
+      });
+    }
   }
 
   private resolveCreateErrorMessage(err: HttpErrorResponse): string {

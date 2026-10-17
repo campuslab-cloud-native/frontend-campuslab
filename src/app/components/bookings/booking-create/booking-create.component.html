@@ -1,13 +1,13 @@
 <form [formGroup]="form" (ngSubmit)="submit()" class="card p-3 mb-3">
-  <h5>Nueva reserva</h5>
+  <h5>{{ isItem() ? 'Reservar insumos y equipos' : 'Nueva reserva' }}</h5>
 
   <div class="row g-2">
     <div class="col-12 col-md-4">
       <select class="form-select" formControlName="resourceId">
-        <option [ngValue]="null" disabled>Selecciona un laboratorio</option>
-        @for (lab of labs(); track lab.id) {
+        <option [ngValue]="null" disabled>{{ isItem() ? 'Selecciona un insumo o equipo' : 'Selecciona un laboratorio' }}</option>
+        @for (lab of options(); track lab.id) {
           <option [ngValue]="lab.id" [disabled]="cupoFor(lab) === 0">
-            {{ lab.name }} (cupo: {{ cupoFor(lab) }})
+            {{ isItem() ? typeLabel(lab) + ' · ' : '' }}{{ lab.name }} (cupo: {{ cupoFor(lab) }})
           </option>
         }
       </select>
@@ -15,7 +15,7 @@
 
     <div class="col-12 col-md-6 position-relative">
       <button type="button" class="form-control picker-trigger" [disabled]="!labSelected()" (click)="togglePicker()">
-        {{ slotLabel() || (labSelected() ? 'Selecciona fecha y horario' : 'Primero selecciona un laboratorio') }}
+        {{ slotLabel() || (labSelected() ? 'Selecciona fecha y horario' : (isItem() ? 'Primero selecciona un insumo o equipo' : 'Primero selecciona un laboratorio')) }}
       </button>
 
       @if (pickerOpen()) {
@@ -62,11 +62,15 @@
     </div>
 
     <div class="col-12 col-md-2">
-      <button type="submit" class="btn btn-primary w-100" [disabled]="form.invalid || submitting() || !!slotIssue() || !!cupoIssue()">
+      <button type="submit" class="btn btn-primary w-100" [disabled]="form.invalid || submitting() || blocked()">
         {{ submitting() ? 'Creando...' : 'Reservar' }}
       </button>
     </div>
   </div>
+
+  @if (isItem() && options().length === 0) {
+    <div class="text-muted small mt-2">Aún no hay insumos ni equipos en el catálogo.</div>
+  }
 
   @if (cupoIssue(); as cupo) {
     <div class="alert alert-warning mt-2 mb-0">{{ cupo.message }}</div>

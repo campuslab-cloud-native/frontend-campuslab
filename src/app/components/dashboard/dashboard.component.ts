@@ -9,13 +9,21 @@ import { CatalogService } from '../../core/services/catalog.service';
 import { ReportService, Kpis } from '../../core/services/report.service';
 import { AuditService, AuditEvent } from '../../core/services/audit.service';
 import { Booking, BookingStatus } from '../../core/models/booking.model';
+import { CatalogResource, ResourceType } from '../../core/models/resource.model';
 import { BOOKING_STEPS, STATUS_LABELS, effectiveStatus, stepIndex } from '../../core/utils/booking-time';
 
 const MY_BOOKINGS_POLL_MS = 15000;
 
+const KIND_LABELS: Record<ResourceType, string> = {
+  [ResourceType.Lab]: 'Laboratorio',
+  [ResourceType.Equipment]: 'Equipo',
+  [ResourceType.Supply]: 'Insumo',
+};
+
 interface MyBookingView {
   booking: Booking;
   labName: string;
+  kindLabel: string;
   statusLabel: string;
   step: number;
 }
@@ -34,7 +42,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private readonly reportService = inject(ReportService);
   private readonly auditService = inject(AuditService);
   private readonly destroy$ = new Subject<void>();
-  private resourceNames = new Map<number, string>();
+  private resources = new Map<number, CatalogResource>();
 
   readonly isAdmin = this.auth.hasAnyRole(AppRole.Admin);
   readonly isOperator = this.auth.hasAnyRole(AppRole.Operator);
@@ -61,7 +69,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.isClient) {
       this.catalogService.getResources().subscribe({
         next: (resources) => {
-          this.resourceNames = new Map(resources.map((r) => [r.id, r.name]));
+          this.resources = new Map(resources.map((r) => [r.id, r]));
           this.loadMyBookings();
         },
         error: () => {},
@@ -89,12 +97,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
           .filter((item) => item.status !== 'FINISHED' && item.status !== BookingStatus.Cancelada)
           .sort((a, b) => new Date(a.booking.startTime).getTime() - new Date(b.booking.startTime).getTime())
           .slice(0, 5)
-          .map((item) => ({
-            booking: item.booking,
-            labName: this.resourceNames.get(item.booking.resourceId) ?? `Laboratorio #${item.booking.resourceId}`,
-            statusLabel: STATUS_LABELS[item.status],
-            step: stepIndex(item.status),
-          }));
+          .map((item) => {
+            const resource = this.resources.get(item.booking.resourceId);
+            return {
+              booking: item.booking,
+              labName: resource?.name ?? `Recurso #${item.booking.resourceId}`,
+              kindLabel: resource ? KIND_LABELS[resource.type] : 'Recurso',
+              statusLabel: STATUS_LABELS[item.status],
+              step: stepIndex(item.status),
+            };
+          });
         this.myBookings.set(views);
       },
       error: () => {},
