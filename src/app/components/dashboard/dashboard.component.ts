@@ -10,7 +10,6 @@ import { ReportService, Kpis } from '../../core/services/report.service';
 import { AuditService, AuditEvent } from '../../core/services/audit.service';
 import { Booking, BookingStatus } from '../../core/models/booking.model';
 import { BOOKING_STEPS, STATUS_LABELS, effectiveStatus, stepIndex } from '../../core/utils/booking-time';
-import { readMyBookingIds } from '../../core/utils/my-bookings';
 
 const MY_BOOKINGS_POLL_MS = 15000;
 
@@ -82,16 +81,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadMyBookings(): void {
-    const ids = readMyBookingIds(this.auth.userKey);
-    this.bookingService.getBookings().subscribe({
+    this.bookingService.getMyBookings().subscribe({
       next: (bookings) => {
         const now = new Date();
         const views = bookings
-          .filter((booking) => ids.has(booking.id))
           .map((booking) => ({ booking, status: effectiveStatus(booking, now) }))
           .filter((item) => item.status !== 'FINISHED' && item.status !== BookingStatus.Cancelada)
           .sort((a, b) => new Date(a.booking.startTime).getTime() - new Date(b.booking.startTime).getTime())
-          .slice(0, 3)
+          .slice(0, 5)
           .map((item) => ({
             booking: item.booking,
             labName: this.resourceNames.get(item.booking.resourceId) ?? `Laboratorio #${item.booking.resourceId}`,

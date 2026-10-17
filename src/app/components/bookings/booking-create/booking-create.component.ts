@@ -7,8 +7,7 @@ import { CatalogService } from '../../../core/services/catalog.service';
 import { BookingService } from '../../../core/services/booking.service';
 import { CatalogResource, ResourceType } from '../../../core/models/resource.model';
 import { Booking } from '../../../core/models/booking.model';
-import { AuthService } from '../../../core/auth/auth.service';
-import { rememberMyBooking } from '../../../core/utils/my-bookings';
+import { backendMessage } from '../../../core/utils/http-errors';
 import {
   MAX_BOOKING_HOURS,
   MAX_BOOKING_MS,
@@ -55,7 +54,6 @@ export class BookingCreateComponent implements OnDestroy {
   private readonly fb = inject(FormBuilder);
   private readonly catalogService = inject(CatalogService);
   private readonly bookingService = inject(BookingService);
-  private readonly auth = inject(AuthService);
   private readonly destroy$ = new Subject<void>();
 
   readonly maxHours = MAX_BOOKING_HOURS;
@@ -232,10 +230,7 @@ export class BookingCreateComponent implements OnDestroy {
 
     const { resourceId, startTime, endTime } = this.form.getRawValue();
     this.bookingService.createBooking({ resourceId: resourceId as number, startTime, endTime }).subscribe({
-      next: (booking) => {
-        rememberMyBooking(this.auth.userKey, booking.id);
-        this.onCreated();
-      },
+      next: () => this.onCreated(),
       error: (err: HttpErrorResponse) => {
         if (err.status === 0 || err.status >= 500) {
           this.verifyCreated(resourceId as number, startTime);
@@ -279,13 +274,12 @@ export class BookingCreateComponent implements OnDestroy {
 
   private verifyCreated(resourceId: number, startTime: string): void {
     const startMs = new Date(startTime).getTime();
-    this.bookingService.getBookings().subscribe({
+    this.bookingService.getAccessibleBookings().subscribe({
       next: (bookings) => {
-        const match = bookings
-          .filter((b) => b.resourceId === resourceId && new Date(b.startTime).getTime() === startMs)
-          .sort((a, b) => b.id - a.id)[0];
-        if (match) {
-          rememberMyBooking(this.auth.userKey, match.id);
+        const created = bookings.some(
+          (b) => b.resourceId === resourceId && new Date(b.startTime).getTime() === startMs
+        );
+        if (created) {
           this.onCreated();
         } else {
           this.submitting.set(false);
@@ -307,15 +301,16 @@ export class BookingCreateComponent implements OnDestroy {
   }
 
   private loadExisting(): void {
-    this.bookingService.getBookings().subscribe({
+    this.bookingService.getAccessibleBookings().subscribe({
       next: (bookings) => this.existing.set(bookings),
       error: () => {},
     });
   }
 
   private resolveCreateErrorMessage(err: HttpErrorResponse): string {
-    if (err.status === 409) {
-      return 'No se pudo reservar: ya no hay cupo o el horario está ocupado. Elige otra fecha u horario.';
+    const message = backendMessage(err);
+    if (message && err.status >= 400 && err.status < 500) {
+      return message;
     }
     return 'No se pudo crear la reserva. Intenta nuevamente.';
   }
