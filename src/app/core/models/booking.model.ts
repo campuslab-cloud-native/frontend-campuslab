@@ -2,9 +2,7 @@ export enum BookingStatus {
   Solicitada = 'REQUESTED',
   Aprobada = 'APPROVED',
   EnPreparacion = 'IN_PREPARATION',
-  PreparacionLista = 'READY',
   EnUso = 'IN_USE',
-  Terminada = 'TERMINATED',
   Devuelta = 'RETURNED',
   Cancelada = 'CANCELLED'
 }

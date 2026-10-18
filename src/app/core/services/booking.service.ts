@@ -41,4 +41,8 @@ export class BookingService {
   updateStatus(bookingId: number, status: BookingStatus): Observable<Booking> {
     return this.http.put<Booking>(`${this.baseUrl}/${bookingId}/status`, { status });
   }
+
+  updateAdminStatus(bookingId: number, status: BookingStatus): Observable<Booking> {
+    return this.http.put<Booking>(`${this.baseUrl}/${bookingId}/admin-status`, { status });
+  }
 }

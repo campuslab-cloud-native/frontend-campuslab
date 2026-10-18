@@ -14,6 +14,7 @@ import {
   BookingAction,
   DisplayStatus,
   STATUS_LABELS,
+  adminActions,
   allowedActions,
   effectiveStatus,
   toDateKey,
@@ -24,13 +25,11 @@ const POLL_INTERVAL_MS = 20000;
 
 const STATUS_PRIORITY: Record<BookingStatus, number> = {
   [BookingStatus.Solicitada]: 0,
-  [BookingStatus.EnPreparacion]: 1,
-  [BookingStatus.PreparacionLista]: 2,
+  [BookingStatus.EnUso]: 1,
+  [BookingStatus.EnPreparacion]: 2,
   [BookingStatus.Aprobada]: 3,
-  [BookingStatus.EnUso]: 4,
-  [BookingStatus.Terminada]: 5,
-  [BookingStatus.Devuelta]: 6,
-  [BookingStatus.Cancelada]: 7,
+  [BookingStatus.Devuelta]: 4,
+  [BookingStatus.Cancelada]: 5,
 };
 
 @Component({
@@ -53,7 +52,6 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
     BookingStatus.Solicitada,
     BookingStatus.Aprobada,
     BookingStatus.EnPreparacion,
-    BookingStatus.PreparacionLista,
     BookingStatus.EnUso,
     'FINISHED',
     BookingStatus.Cancelada,
@@ -86,6 +84,10 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
       .sort((a, b) => new Date(b.endTime).getTime() - new Date(a.endTime).getTime());
   });
 
+  get isAdmin(): boolean {
+    return this.auth.hasAnyRole(AppRole.Admin);
+  }
+
   get canManage(): boolean {
     return this.auth.hasAnyRole(AppRole.Admin, AppRole.Operator);
   }
@@ -107,7 +109,7 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
   }
 
   actionsFor(booking: Booking): BookingAction[] {
-    return allowedActions(booking);
+    return this.isAdmin ? adminActions(booking) : allowedActions(booking);
   }
 
   ngOnInit(): void {
@@ -171,7 +173,10 @@ export class BookingsPageComponent implements OnInit, OnDestroy {
 
   changeStatus(booking: Booking, status: BookingStatus): void {
     this.actionSuccess.set(null);
-    this.bookingService.updateStatus(booking.id, status).subscribe({
+    const request$ = this.isAdmin
+      ? this.bookingService.updateAdminStatus(booking.id, status)
+      : this.bookingService.updateStatus(booking.id, status);
+    request$.subscribe({
       next: () => {
         this.actionError.set(null);
         this.showSuccess(`Acción actualizada con éxito (reserva #${booking.id}).`);

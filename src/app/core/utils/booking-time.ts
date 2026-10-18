@@ -3,9 +3,8 @@ import { Booking, BookingStatus } from '../models/booking.model';
 export const MAX_BOOKING_HOURS = 2;
 export const MAX_BOOKING_MS = MAX_BOOKING_HOURS * 60 * 60 * 1000;
 
-export const PREP_MINUTES = 20;
-export const READY_MINUTES = 10;
-export const PREP_BUFFER_MINUTES = PREP_MINUTES + READY_MINUTES;
+// El backend pasa APPROVED -> IN_PREPARATION 30 minutos antes del inicio.
+export const PREP_BUFFER_MINUTES = 30;
 
 export type DisplayStatus = BookingStatus | 'FINISHED';
 
@@ -18,35 +17,24 @@ export const STATUS_LABELS: Record<DisplayStatus, string> = {
   [BookingStatus.Solicitada]: 'Solicitada',
   [BookingStatus.Aprobada]: 'Aprobada',
   [BookingStatus.EnPreparacion]: 'En preparación',
-  [BookingStatus.PreparacionLista]: 'Preparación lista',
   [BookingStatus.EnUso]: 'En uso',
-  [BookingStatus.Terminada]: 'Terminada',
-  [BookingStatus.Devuelta]: 'Terminada',
+  [BookingStatus.Devuelta]: 'Devuelta',
   [BookingStatus.Cancelada]: 'Cancelada',
-  FINISHED: 'Terminada',
+  FINISHED: 'Devuelta',
 };
 
 export const BOOKING_STEPS: { status: DisplayStatus; label: string }[] = [
   { status: BookingStatus.Solicitada, label: 'Solicitada' },
   { status: BookingStatus.Aprobada, label: 'Aprobada' },
   { status: BookingStatus.EnPreparacion, label: 'En preparación' },
-  { status: BookingStatus.PreparacionLista, label: 'Preparación lista' },
   { status: BookingStatus.EnUso, label: 'En uso' },
-  { status: 'FINISHED', label: 'Terminada' },
+  { status: 'FINISHED', label: 'Devuelta' },
 ];
 
 const ACTIVE_STATUSES: BookingStatus[] = [
   BookingStatus.Solicitada,
   BookingStatus.Aprobada,
   BookingStatus.EnPreparacion,
-  BookingStatus.PreparacionLista,
-  BookingStatus.EnUso,
-];
-
-const RUNNING_STATUSES: BookingStatus[] = [
-  BookingStatus.Aprobada,
-  BookingStatus.EnPreparacion,
-  BookingStatus.PreparacionLista,
   BookingStatus.EnUso,
 ];
 
@@ -65,22 +53,27 @@ export function stepIndex(status: DisplayStatus): number {
   return index < 0 ? 0 : index;
 }
 
-export function effectiveStatus(booking: Booking, now: Date = new Date()): DisplayStatus {
-  if (booking.status === BookingStatus.Terminada || booking.status === BookingStatus.Devuelta) {
-    return 'FINISHED';
-  }
-  if (RUNNING_STATUSES.includes(booking.status) && now.getTime() >= new Date(booking.endTime).getTime()) {
-    return 'FINISHED';
-  }
-  return booking.status;
+// Una reserva solo termina cuando el backend la marca RETURNED: una reserva IN_USE
+// sigue en uso (y con su cupo tomado) hasta que se registre la devolución.
+export function effectiveStatus(booking: Booking, _now: Date = new Date()): DisplayStatus {
+  return booking.status === BookingStatus.Devuelta ? 'FINISHED' : booking.status;
 }
 
-export function countsAsCupo(booking: Booking, now: Date = new Date()): boolean {
-  return ACTIVE_STATUSES.includes(booking.status) && effectiveStatus(booking, now) !== 'FINISHED';
+export function countsAsCupo(booking: Booking, _now: Date = new Date()): boolean {
+  return ACTIVE_STATUSES.includes(booking.status);
+}
+
+// El administrador puede dejar la reserva en cualquier estado (endpoint admin-status).
+export function adminActions(booking: Booking): BookingAction[] {
+  return Object.values(BookingStatus)
+    .filter((status) => status !== booking.status)
+    .map((status) => ({ label: `Pasar a ${STATUS_LABELS[status].toLowerCase()}`, status }));
 }
 
 export function allowedActions(booking: Booking, now: Date = new Date()): BookingAction[] {
-  if (effectiveStatus(booking, now) === 'FINISHED') return [];
+  if (booking.status === BookingStatus.EnUso) {
+    return [{ label: 'Registrar devolución', status: BookingStatus.Devuelta }];
+  }
   if (now.getTime() >= new Date(booking.startTime).getTime()) return [];
 
   switch (booking.status) {
@@ -91,7 +84,6 @@ export function allowedActions(booking: Booking, now: Date = new Date()): Bookin
       ];
     case BookingStatus.Aprobada:
     case BookingStatus.EnPreparacion:
-    case BookingStatus.PreparacionLista:
       return [{ label: 'Cancelar', status: BookingStatus.Cancelada }];
     default:
       return [];

@@ -10,5 +10,5 @@ export const environment = {
     postLogoutRedirectUri: 'http://localhost:4200/login',
     apiScope: 'api://REEMPLAZAR_CON_CLIENT_ID/access_as_user'
   },
-  apiBaseUrl: 'http://localhost:8080/api'
+  apiBaseUrl: 'http://localhost:8080/api/v1'
 };
