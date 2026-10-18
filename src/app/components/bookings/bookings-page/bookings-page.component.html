@@ -3,6 +3,7 @@
 
   @if (canCreate) {
     <app-booking-create (created)="onBookingCreated()"></app-booking-create>
+    <app-booking-create kind="item" (created)="onBookingCreated()"></app-booking-create>
     <hr />
   }
 
@@ -63,12 +64,6 @@
       }
     </tbody>
   </table>
-
-  @if (canCreate) {
-    <hr />
-    <app-booking-create kind="item" (created)="onBookingCreated()"></app-booking-create>
-    <hr />
-  }
 
   <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-4 mb-2">
     <h5 class="mb-0">Reservas terminadas del día</h5>
