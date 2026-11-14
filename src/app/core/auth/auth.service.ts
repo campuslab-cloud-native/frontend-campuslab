@@ -26,10 +26,6 @@ export class AuthService {
     return this.activeAccount?.name ?? this.activeAccount?.username ?? '';
   }
 
-  get userKey(): string {
-    return this.activeAccount?.localAccountId ?? this.activeAccount?.username ?? '';
-  }
-
    get roles(): AppRole[] {
     if (!this.activeAccount) {
       return [];
