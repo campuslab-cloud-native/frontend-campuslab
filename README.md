@@ -1,42 +1,33 @@
-## frontend-campuslab
+frontend-campuslab
 
-Frontend web de CampusLab desarrollado con Angular.
+CampusLab frontend web application developed with Angular.
 
-## Tecnologías
-
-- Angular
-- TypeScript
-- MSAL Angular
-- Azure AD
-
-## Funcionalidades
-
-- Inicio de sesión corporativo con Microsoft.
-- Protección de rutas mediante MSAL.
-- Autorización por rol.
-- Consumo del backend mediante AWS API Gateway.
-- Envío automático del JWT en las solicitudes HTTP.
-
-## Roles
-
-- ADMIN
-- OPERATOR
-- CLIENT
-- AUDITOR
-
-## Rutas
-
-- `/login`
-- `/dashboard`
-- `/bookings`
-- `/catalog`
-- `/reports`
-- `/audit`
-
-## Flujo de autenticación
-
-```text
-Usuario
+Technologies
+Angular
+TypeScript
+MSAL Angular
+Azure AD
+Features
+Corporate sign-in with Microsoft.
+Route protection using MSAL.
+Role-based authorization.
+Backend integration through AWS API Gateway.
+Automatic JWT attachment to HTTP requests.
+Roles
+ADMIN
+OPERATOR
+CLIENT
+AUDITOR
+Routes
+/login
+/dashboard
+/bookings
+/catalog
+/reports
+/audit
+Authentication Flow
+text
+User
 ↓
 Angular
 ↓
@@ -51,57 +42,48 @@ Angular
 AWS API Gateway
 ↓
 ms-campuslab-bff
-```
 
-## Variables de entorno
+Environment Variables
 
-La configuración vive en archivos de entorno de Angular que **no se versionan** (están en `.gitignore`).
-Antes de compilar o ejecutar, créalos a partir del ejemplo:
+Configuration is stored in Angular environment files that are not committed to version control (they are included in .gitignore).
 
-```bash
+Before building or running the application, create them from the example file:
+
+bash
 cp src/environments/environment.example.ts src/environments/environment.ts
 cp src/environments/environment.example.ts src/environments/environment.prod.ts
-```
 
-Y completa los valores en cada archivo:
 
-| Campo | Descripción |
-|---|---|
-| `azureAd.clientId` | ID de aplicación (cliente) del registro en Azure Entra ID |
-| `azureAd.tenantId` | ID de directorio (inquilino) |
-| `azureAd.redirectUri` | URL a la que Microsoft devuelve al usuario (debe estar registrada como SPA) |
-| `azureAd.postLogoutRedirectUri` | URL tras cerrar sesión |
-| `azureAd.apiScope` | Ámbito de la API, `api://<CLIENT_ID>/access_as_user` |
-| `apiBaseUrl` | URL base de la API. En producción, el API Gateway (`https://<id>.execute-api.<region>.amazonaws.com/v1`); en local, el BFF (`http://localhost:8080/api/v1`) |
+Then configure the values in each file:
 
-El `Dockerfile` compila con `ng build --configuration production`, que usa `environment.prod.ts`:
-ese archivo debe existir en el contexto de construcción.
+Field	Description
+azureAd.clientId	Application (client) ID from the Azure Entra ID app registration
+azureAd.tenantId	Directory (tenant) ID
+azureAd.redirectUri	URL where Microsoft redirects the user after authentication (must be registered as an SPA)
+azureAd.postLogoutRedirectUri	URL to redirect to after signing out
+azureAd.apiScope	API scope, api://<CLIENT_ID>/access_as_user
+apiBaseUrl	API base URL. In production, the API Gateway (https://<id>.execute-api.<region>.amazonaws.com/v1); locally, the BFF (http://localhost:8080/api/v1)
 
-## Autenticación
+The Dockerfile builds the application using ng build --configuration production, which uses environment.prod.ts. This file must exist in the build context.
 
-El inicio de sesión usa MSAL (`@azure/msal-browser` 5) con el flujo **Authorization Code con PKCE**
-(`code_challenge_method=S256`, `state` y `nonce`), sin flujo Implicit. `MsalInterceptor` adjunta el
-`Bearer <access_token>` solo a las llamadas a `apiBaseUrl`.
+Authentication
 
-## Ejecución local
+Authentication is implemented using MSAL (@azure/msal-browser 5) with the Authorization Code Flow with PKCE (code_challenge_method=S256, state, and nonce), without using the Implicit Flow.
 
-```bash
+MsalInterceptor automatically attaches the Bearer <access_token> header only to requests targeting apiBaseUrl.
+
+Local Development
+bash
 npm install
 npm start
-```
 
-## Pruebas
-
-```bash
+Tests
+bash
 npm test
-```
 
-Cubren las reglas de las reservas (`booking-time`), el guard de roles, `AuthService`,
-el componente de login y la protección de las rutas.
 
-## Build
+Tests cover booking rules (booking-time), the role guard, AuthService, the login component, and route protection.
 
-```bash
+Build
+bash
 npm run build
-```
-
