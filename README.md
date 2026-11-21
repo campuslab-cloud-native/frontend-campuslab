@@ -87,3 +87,6 @@ Tests cover booking rules (booking-time), the role guard, AuthService, the login
 Build
 bash
 npm run build
+
+
+
