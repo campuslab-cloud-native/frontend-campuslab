@@ -1,0 +1,15 @@
+# Frontend en local (servidor de desarrollo de Angular). Usa src/environments/environment.ts
+services:
+  frontend:
+    image: node:22-alpine
+    container_name: campuslab-frontend-local
+    working_dir: /app
+    volumes:
+      - .:/app
+      - frontend-node-modules:/app/node_modules
+    command: sh -c "npm ci && npx ng serve --host 0.0.0.0 --port 4200"
+    ports:
+      - "127.0.0.1:4200:4200"
+
+volumes:
+  frontend-node-modules:
